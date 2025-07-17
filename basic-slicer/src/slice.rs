@@ -1,4 +1,7 @@
-use std::{collections::{HashSet, VecDeque}, f64};
+use std::{
+    collections::{HashSet, VecDeque},
+    f64,
+};
 
 use crate::types::{Point2d, Point3d, Triangle};
 
@@ -150,7 +153,8 @@ fn point_line_dist(point: Point2d, line_start: Point2d, line_end: Point2d) -> f6
         ((line_end.x - point.x).powi(2) + (line_end.y - point.y).powi(2)).sqrt()
     } else {
         // i cba think rn. this is from wikipedia
-        (delta_y * point.x - delta_x * point.y + line_end.x * line_start.y - line_end.y * line_start.x)
+        (delta_y * point.x - delta_x * point.y + line_end.x * line_start.y
+            - line_end.y * line_start.x)
             .abs()
             / (delta_y.powi(2) + delta_x.powi(2)).sqrt()
     }
@@ -183,7 +187,12 @@ fn rdp(segment: &VecDeque<Point2d>) -> Vec<Point2d> {
         }
     }
 
-    segment.iter().enumerate().filter(|(i, _)| keep_idxs.contains(i)).map(|(_, p)| *p).collect()
+    segment
+        .iter()
+        .enumerate()
+        .filter(|(i, _)| keep_idxs.contains(i))
+        .map(|(_, p)| *p)
+        .collect()
 }
 
 // slow as a dog that can't walk too good because it's missing a leg or something like that.
