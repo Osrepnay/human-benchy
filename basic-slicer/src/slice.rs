@@ -1,4 +1,4 @@
-use std::collections::VecDeque;
+use std::{collections::{HashSet, VecDeque}, f64};
 
 use crate::types::{Point2d, Point3d, Triangle};
 
@@ -75,7 +75,7 @@ fn intersect(tri: &Triangle, plane_z: f64) -> Option<Line2d> {
 pub struct Layer {
     // doesn't do closed shapes but we don't need that for now
     // we're just drawing the segments
-    pub segments: Vec<VecDeque<Point2d>>,
+    pub segments: Vec<Vec<Point2d>>,
     pub z: f64,
 }
 
@@ -112,6 +112,7 @@ fn popper(is_front: bool, v: &mut VecDeque<Point2d>) -> Point2d {
     }
 }
 
+// n^2, my favorite!
 fn join_segments(segments: &mut Vec<VecDeque<Point2d>>) {
     'outer: loop {
         // addee: segment being added to
@@ -138,6 +139,51 @@ fn join_segments(segments: &mut Vec<VecDeque<Point2d>>) {
         }
         break;
     }
+}
+
+const RDP_EPSILON: f64 = 1e-4;
+
+fn point_line_dist(point: Point2d, line_start: Point2d, line_end: Point2d) -> f64 {
+    let delta_x = line_end.x - line_start.x;
+    let delta_y = line_end.y - line_start.y;
+    if delta_x == 0.0 && delta_y == 0.0 {
+        ((line_end.x - point.x).powi(2) + (line_end.y - point.y).powi(2)).sqrt()
+    } else {
+        // i cba think rn. this is from wikipedia
+        (delta_y * point.x - delta_x * point.y + line_end.x * line_start.y - line_end.y * line_start.x)
+            .abs()
+            / (delta_y.powi(2) + delta_x.powi(2)).sqrt()
+    }
+}
+
+// ramer douglas peucker
+fn rdp(segment: &VecDeque<Point2d>) -> Vec<Point2d> {
+    let mut keep_idxs: HashSet<usize> = HashSet::new();
+    keep_idxs.insert(0);
+    keep_idxs.insert(segment.len() - 1);
+
+    let mut pair_stack: Vec<(usize, usize)> = Vec::new();
+    pair_stack.push((0, segment.len() - 1));
+
+    while pair_stack.len() > 0 {
+        let (start, end) = pair_stack.pop().unwrap();
+        let mut max_dist = RDP_EPSILON;
+        let mut max_dist_idx = 0;
+        for i in (start + 1)..end {
+            let dist = point_line_dist(segment[i], segment[start], segment[end]);
+            if dist > max_dist {
+                max_dist = dist;
+                max_dist_idx = i;
+            }
+        }
+        if max_dist != RDP_EPSILON {
+            keep_idxs.insert(max_dist_idx);
+            pair_stack.push((start, max_dist_idx));
+            pair_stack.push((max_dist_idx, end));
+        }
+    }
+
+    segment.iter().enumerate().filter(|(i, _)| keep_idxs.contains(i)).map(|(_, p)| *p).collect()
 }
 
 // slow as a dog that can't walk too good because it's missing a leg or something like that.
@@ -191,8 +237,9 @@ pub fn slice(triangles: &Vec<Triangle>, layers: u32) -> Vec<Layer> {
         if !had_intersection {
             break;
         } else {
+            let final_segments = segments.iter().map(rdp).collect();
             layers.push(Layer {
-                segments,
+                segments: final_segments,
                 z: curr_z,
             });
             curr_z += layer_height;
