@@ -20,9 +20,9 @@ fn header(input: &[u8]) -> IResult<&[u8], ()> {
 
 fn point(input: &[u8]) -> IResult<&[u8], Point3d> {
     map(count(le_f32(), 3), |num_vec| Point3d {
-        x: num_vec[0],
-        y: num_vec[1],
-        z: num_vec[2],
+        x: num_vec[0] as f64,
+        y: num_vec[1] as f64,
+        z: num_vec[2] as f64,
     })
     .parse(input)
 }
