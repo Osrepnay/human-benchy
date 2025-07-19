@@ -1,3 +1,5 @@
+use wasm_bindgen::prelude::wasm_bindgen;
+
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Point3d {
     pub x: f64,
@@ -5,6 +7,7 @@ pub struct Point3d {
     pub z: f64,
 }
 
+#[wasm_bindgen]
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Point2d {
     pub x: f64,

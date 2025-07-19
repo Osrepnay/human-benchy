@@ -1,3 +1,6 @@
 basic-slicer/target
+basic-slicer/pkg
 basic-slicer/data.js
+node_modules
+dist/*
 *.stl

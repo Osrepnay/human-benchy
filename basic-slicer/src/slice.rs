@@ -196,7 +196,7 @@ fn rdp(segment: &VecDeque<Point2d>) -> Vec<Point2d> {
 }
 
 // slow as a dog that can't walk too good because it's missing a leg or something like that.
-pub fn slice(triangles: &Vec<Triangle>, layers: u32) -> Vec<Layer> {
+pub fn slice(triangles: &Vec<Triangle>, layers: usize) -> Vec<Layer> {
     let mut x_min = f64::INFINITY;
     let mut x_max = f64::NEG_INFINITY;
 

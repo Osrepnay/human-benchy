@@ -1,0 +1,13 @@
+{
+  "dependencies": {
+    "basic-slicer": "file:basic-slicer/pkg",
+    "three": "^0.178.0"
+  },
+  "devDependencies": {
+    "esbuild": "0.25.6",
+    "esbuild-plugin-wasm": "^1.1.0"
+  },
+  "scripts": {
+    "build": "node build.mjs"
+  }
+}

@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+    <style>
+html, body {
+    padding: 0px;
+    margin: 0px;
+    height: 100%;
+}
+
+#game-screen {
+    display: flex;
+    height: 100%;
+    align-items: flex-start;
+}
+
+#canvas-container {
+    flex: 1;
+    max-height: 100%;
+    max-width: 100%;
+    height: 100%;
+}
+
+#canvas-wrapper {
+    aspect-ratio: 1 / 1;
+    position: relative;
+
+    border: 0.5em solid black;
+    box-sizing: border-box;
+}
+
+.wrapper-landscape {
+    height: 100%;
+    width: auto;
+}
+
+.wrapper-portrait {
+    width: 100%;
+    height: auto;
+}
+
+.canvas {
+    object-fit: contain;
+    width: 100%;
+    height: 100%;
+    image-rendering: pixelated;
+    display: block;
+}
+
+#layer-canvas {
+    position: absolute;
+    left: 0px;
+    top: 0px;
+    z-index: -1;
+}
+
+#canvas {
+    opacity: 0.7;
+}
+
+#tools {
+    display: inline flex;
+    flex-direction: row;
+    align-items: flex-start;
+}
+
+#tools button {
+    flex: 1 1 0;
+    margin: .5em;
+}
+    </style>
+    <body>
+        <div id="picker-screen">
+            <input id="stl-picker" type="file" accept=".stl"> 
+        </div>
+        <div id="game-screen" style="display: none;">
+            <div id="canvas-container">
+                <div id="canvas-wrapper">
+                    <canvas class="canvas" id="layer-canvas" width="500" height="500"></canvas>
+                    <canvas class="canvas" id="canvas" width="500" height="500"></canvas>
+                </div>
+            </div>
+            <div id="tools">
+                <button>Brush</button>
+                <button>Erase</button>
+                <button>Fill</button>
+            </div>
+        </div>
+        <script src="dist/index.js" type="module"></script>
+    </body>
+</html>
