@@ -5,9 +5,11 @@ const pickerScreen = document.getElementById("picker-screen");
 
 const stlPicker = document.getElementById("stl-picker");
 
+let numLayers = 50;
+
 function startGame(layers) {
     pickerScreen.style.display = "none";
-    initDraw(layers);
+    initDraw(numLayers, layers);
 }
 
 stlPicker.addEventListener("change", () => {
@@ -19,7 +21,7 @@ stlPicker.addEventListener("change", () => {
         fileReader.readAsArrayBuffer(stlPicker.files[0]);
         fileReader.addEventListener("loadend", () => {
             const fileArr = new Uint8Array(fileReader.result);
-            const layers = bs.buf_to_layers(50, fileArr);
+            const layers = bs.buf_to_layers(numLayers, fileArr);
             startGame(layers);
         });
     }
