@@ -12,7 +12,6 @@ export function initDraw(num, l) {
     gameScreen.style.display = "flex";
     resizeCanvas();
     drawLayer(layerIdx);
-    drawUserLine();
 }
 
 const gameScreen = document.getElementById("game-screen");
@@ -59,19 +58,33 @@ function resizeCanvas() {
 window.addEventListener("resize", resizeCanvas);
 
 let tool = "brush";
-["brush", "erase", "fill"].forEach((t) => document.getElementById(t).addEventListener("mousedown", () => tool = t));
+["brush", "fill"].forEach((t) => document.getElementById(t).addEventListener("mousedown", () => tool = t));
 
-let currPath = [];
+let brushWidth = canvas.width / 50;
+let lastPoint = null;
 canvas.addEventListener("mousemove", (e) => {
     if (tool === "brush") {
         if (e.buttons != 0) {
-            // hack to make it draw even if you just click without dragging
-            if (currPath.length === 0) {
-                currPath.push({ x: transformX(e.clientX), y: transformY(e.clientY) });
+            const point = { x: transformX(e.clientX), y: transformY(e.clientY) };
+
+            ctx.strokeStyle = "red";
+            ctx.fillStyle = "red";
+            ctx.lineWidth = brushWidth;
+            if (!lastPoint) {
+                lastPoint = point;
             }
-            currPath.push({ x: transformX(e.clientX), y: transformY(e.clientY) });
+            console.log(lastPoint.x, point.x);
+            ctx.moveTo(lastPoint.x, lastPoint.y);
+            ctx.beginPath();
+            ctx.lineTo(point.x, point.y);
+            // why is this needed???
+            ctx.lineTo(lastPoint.x, lastPoint.y);
+            ctx.closePath();
+            ctx.stroke();
+
+            lastPoint = point;
         } else {
-            currPath = [];
+            lastPoint = null;
         }
     }
 });
@@ -79,6 +92,14 @@ canvas.addEventListener("mousedown", (e) => {
     console.log(transformX(e.clientX), transformY(e.clientY));
     if (tool === "fill") {
         floodfill(Math.round(transformX(e.clientX)), Math.round(transformY(e.clientY)));
+    } else if (tool === "brush") {
+        const point = { x: transformX(e.clientX), y: transformY(e.clientY) };
+        lastPoint = point;
+        ctx.strokeStyle = "red";
+        ctx.fillStyle = "red";
+        ctx.lineWidth = brushWidth;
+        ctx.arc(point.x, point.y, brushWidth / 2, 0, 2 * Math.PI);
+        ctx.fill();
     }
 });
 
@@ -166,8 +187,6 @@ function floodfill(startX, startY) {
     ctx.putImageData(origData, 0, 0);
 }
 
-let brushWidth = canvas.width / 50;
-// draw user-drawn line
 function drawUserLine() {
     const cb = () => {
         if (currPath.length > 0) {
