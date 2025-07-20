@@ -1,4 +1,5 @@
 import * as bs from "basic-slicer";
+import * as THREE from "three";
 
 let layers;
 let layerIdx = 0;
@@ -63,6 +64,10 @@ let currPath = [];
 canvas.addEventListener("mousemove", (e) => {
     if (tool === "brush") {
         if (e.buttons != 0) {
+            // hack to make it draw even if you just click without dragging
+            if (currPath.length === 0) {
+                currPath.push({ x: transformX(e.clientX), y: transformY(e.clientY) });
+            }
             currPath.push({ x: transformX(e.clientX), y: transformY(e.clientY) });
         } else {
             currPath = [];
@@ -70,6 +75,7 @@ canvas.addEventListener("mousemove", (e) => {
     }
 });
 canvas.addEventListener("mousedown", (e) => {
+    console.log(transformX(e.clientX), transformY(e.clientY));
     if (tool === "fill") {
         floodfill(Math.round(transformX(e.clientX)), Math.round(transformY(e.clientY)));
     }
@@ -97,19 +103,26 @@ function pxIsFilled(origData, x, y) {
         origData.data[coord + 3] === 255;
 }
 
-function floodfill(x, y) {
-    const origData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+function pxIsTouched(origData, x, y) {
+    let coord = mkDataIdx(origData, x, y);
+    return origData.data[coord] !== 0 ||
+        origData.data[coord + 1] !== 0 ||
+        origData.data[coord + 2] !== 0 ||
+        origData.data[coord + 3] !== 0;
+}
+// need to do a lot of weird shit with floodfill
+function floodfillGeneric(mark, check, x, y, width, height) {
     let seeds = [{ x: x, y: y }];
     while (seeds.length > 0) {
         const seed = seeds.pop();
-        if (pxIsFilled(origData, seed.x, seed.y)) {
+        if (check(seed.x, seed.y)) {
             continue;
         }
         // scan left
         let xLeft;
         for (xLeft = seed.x; xLeft >= 0; xLeft--) {
-            if (!pxIsFilled(origData, xLeft, seed.y)) {
-                colorSq(origData, xLeft, seed.y);
+            if (!check(xLeft, seed.y)) {
+                mark(xLeft, seed.y);
             } else {
                 break;
             }
@@ -118,9 +131,9 @@ function floodfill(x, y) {
 
         // scan right
         let xRight;
-        for (xRight = seed.x + 1; xRight < origData.width; xRight++) {
-            if (!pxIsFilled(origData, xRight, seed.y)) {
-                colorSq(origData, xRight, seed.y);
+        for (xRight = seed.x + 1; xRight < width; xRight++) {
+            if (!check(xRight, seed.y)) {
+                mark(xRight, seed.y);
             } else {
                 break;
             }
@@ -129,19 +142,26 @@ function floodfill(x, y) {
 
         if (seed.y - 1 >= 0) {
             for (let x = xLeft; x <= xRight; x++) {
-                if (!pxIsFilled(origData, x, seed.y - 1)) {
+                if (!check(x, seed.y - 1)) {
                     seeds.push({ x: x, y: seed.y - 1 });
                 }
             }
         }
-        if (seed.y + 1 < origData.height) {
+        if (seed.y + 1 < height) {
             for (let x = xLeft; x <= xRight; x++) {
-                if (!pxIsFilled(origData, x, seed.y + 1)) {
+                if (!check(x, seed.y + 1)) {
                     seeds.push({ x: x, y: seed.y + 1 });
                 }
             }
         }
     }
+}
+
+function floodfill(startX, startY) {
+    const origData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    let mark = (x, y) => colorSq(origData, x, y);
+    let check = (x, y) => pxIsFilled(origData, x, y);
+    floodfillGeneric(mark, check, startX, startY, origData.width, origData.height);
     ctx.putImageData(origData, 0, 0);
 }
 
@@ -193,6 +213,174 @@ function drawLayer(idx) {
     }
 }
 
+function loopPoints(imageData, points) {
+    const deltas = [
+        { x: 1, y: 1 },
+        { x: -1, y: -1 },
+        { x: 1, y: -1 },
+        { x: -1, y: 1 },
+        { x: 1, y: 0 },
+        { x: 0, y: 1 },
+        { x: -1, y: 0 },
+        { x: 0, y: -1 }
+    ];
+    
+    let path = [];
+    let visited = new Set();
+    let point = points.values().next().value;
+    const firstPoint = point;
+    path.push(new THREE.Vector2((point % imageData.width) / imageData.width, point / imageData.height / imageData.height));
+    visited.add(point);
+
+    outer:
+    while (visited.size < points.size) {
+        for (const delta of deltas) {
+            let flatDelta = delta.x + delta.y * imageData.width;
+            let newPoint = point + flatDelta;
+            if (points.has(newPoint) && !visited.has(newPoint)) {
+                visited.add(newPoint);
+                point = newPoint;
+                path.push(new THREE.Vector2((point % imageData.width) / imageData.width,
+                        point / imageData.height / imageData.height));
+                continue outer;
+            }
+        }
+        break;
+    }
+
+    let loops = false;
+    for (const delta of deltas) {
+        let flatDelta = delta.x + delta.y * imageData.width;
+        if (point + flatDelta == firstPoint) {
+            loops = true;
+            break;
+        }
+    }
+
+    if (!loops) {
+        return null;
+    }
+
+    path.push(new THREE.Vector2((firstPoint % imageData.width) / imageData.width,
+            firstPoint / imageData.height / imageData.height));
+    return path;
+}
+
+function polygonate(imageData) {
+    // scan unfilled sections to determine whether they are
+    // 1. free/normal (sees image border) or
+    // 2. a hole
+    // 3. boundary of filled
+    let pixelFlags = new Array(imageData.width);
+    for (let x = 0; x < pixelFlags.length; x++) {
+        pixelFlags[x] = new Array(imageData.height).fill(0);
+    }
+    // each unfilled section gets its own identifier
+    let nthUnfilled = 1;
+    // hole boundaries can overlap so we can't rely on pixelFlags for this
+    // not sure if normal outer boundaries have a similar problem
+    // not obviously so far
+    let allHoles = [];
+    for (let x = 0; x < imageData.width; x++) {
+        for (let y = 0; y < imageData.height; y++) {
+            if (!pxIsTouched(imageData, x, y) && pixelFlags[x][y] === 0) {
+                let isHole = true;
+                // points that 
+                let contacts = [];
+                let mark = (x, y) => {
+                    // boundary pixel
+                    if (x === 0 || y === 0 || x === imageData.width - 1 || y === imageData.height - 1) {
+                        isHole = false;
+                    }
+                    pixelFlags[x][y] = nthUnfilled;
+                };
+                let check = (x, y) => {
+                    let touched = pxIsTouched(imageData, x, y);
+                    let visited = pixelFlags[x][y] === nthUnfilled;
+                    if (touched && !visited) {
+                        contacts.push({ x: x, y: y });
+                    }
+                    return touched || visited;
+                };
+                floodfillGeneric(mark, check, x, y, imageData.width, imageData.height);
+                if (isHole) {
+                    let hole = new Set();
+                    contacts.forEach((pt) => {
+                        pixelFlags[pt.x][pt.y] = -2;
+                        hole.add(pt.x + pt.y * imageData.width);
+                    });
+                    allHoles.push(hole);
+                } else {
+                    contacts.forEach((pt) => {
+                        pixelFlags[pt.x][pt.y] = -1;
+                    });
+                }
+                nthUnfilled++;
+            }
+        }
+    }
+
+    // TODO fix adjacent hole/boundary handling
+    // (holes with shared boundaries)
+    // everything being in a single pixelFlags really limits reasonable options
+    // i wanna get it working first
+
+    // check filled sections to find boundaries
+    // this code breaks if the boundaries branch
+    // but that would require like a 1px wide line
+    // which is kinda hard to do normally
+    let shapes = [];
+    for (let x = 0; x < imageData.width; x++) {
+        for (let y = 0; y < imageData.height; y++) {
+            if (pxIsTouched(imageData, x, y) && pixelFlags[x][y] !== -3) {
+                let boundary = new Set();
+                let holes = [];
+                let marked = 0;
+                let mark = (x, y) => {
+                    marked++;
+                    if (pixelFlags[x][y] == -1) {
+                        boundary.add(x + y * imageData.width);
+                    } else if (pixelFlags[x][y] == -2) {
+                        for (let i = 0; i < allHoles.length; i++) {
+                            if (allHoles[i].has(x + y * imageData.width)) {
+                                holes.push(allHoles[i]);
+                                allHoles.splice(i, 1);
+                            }
+                        }
+                    }
+                    pixelFlags[x][y] = -3;
+                };
+                let check = (x, y) => !pxIsTouched(imageData, x, y) || pixelFlags[x][y] === -3;
+                floodfillGeneric(mark, check, x, y, imageData.width, imageData.height);
+
+                // make the shape
+                let boundaryLoop = loopPoints(imageData, boundary);
+                let holeLoops = holes.map((hole) => {
+                    let looped = loopPoints(imageData, hole);
+                    if (!looped) {
+                        return null;
+                    }
+                    return new THREE.Path(looped);
+                });
+                // error handling! how uncharacteristic!
+                if (boundaryLoop && holeLoops.every((h) => h)) {
+                    let shape = new THREE.Shape(boundaryLoop);
+                    shape.holes = holeLoops;
+                    if (shape) shapes.push(shape);
+                }
+            }
+        }
+        return shapes;
+    }
+
+}
+
+let allShapes = [];
 document.getElementById("next-layer").addEventListener("click", () => {
-    drawLayer(++layerIdx);
-})
+    allShapes.push(...polygonate(ctx.getImageData(0, 0, canvas.width, canvas.height)));
+    if (layerIdx === numLayers) {
+        ;
+    } else {
+        drawLayer(++layerIdx);
+    }
+});
