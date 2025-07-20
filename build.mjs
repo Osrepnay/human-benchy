@@ -4,6 +4,7 @@ import { wasmLoader } from "esbuild-plugin-wasm"
 await esbuild.build({
     entryPoints: ["index.js"],
     bundle: true,
+    minify: true,
     format: "esm",
     outdir: "dist",
     plugins: [wasmLoader()],

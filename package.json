@@ -8,6 +8,7 @@
     "esbuild-plugin-wasm": "^1.1.0"
   },
   "scripts": {
-    "build": "node build.mjs"
+    "build": "node build.mjs",
+    "full-build": "cd basic-slicer && wasm-pack build && cd .. && node build.mjs"
   }
 }

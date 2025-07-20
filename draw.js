@@ -388,7 +388,7 @@ function polygonate(imageData) {
 let allGeometries = [];
 document.getElementById("next-layer").addEventListener("click", () => {
     let shapes = polygonate(ctx.getImageData(0, 0, canvas.width, canvas.height));
-    const layerHeight = 1 / (numLayers - 1);
+    const layerHeight = 1 / numLayers
     for (const shape of shapes) {
         const geo = new THREE.ExtrudeGeometry([shape], {
                 depth: layerHeight,
@@ -397,7 +397,7 @@ document.getElementById("next-layer").addEventListener("click", () => {
             .translate(0, 0, layerIdx * layerHeight);
         allGeometries.push(geo);
     }
-    if (layerIdx === numLayers - 1) {
+    if (layerIdx >= numLayers - 1) {
         gameScreen.style.display = "none";
         initDisplay(allGeometries);
     } else {

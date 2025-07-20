@@ -1,7 +1,7 @@
 import * as THREE from "three";
 
 const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(75, 1, 0.01, 1000);
+const camera = new THREE.PerspectiveCamera(60, 1, 0.01, 1000);
 // reorient z to up-down
 camera.up = new THREE.Vector3(0, 0, 1);
 const displayScreen = document.getElementById("display-screen");
