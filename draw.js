@@ -1,5 +1,6 @@
 import * as bs from "basic-slicer";
 import * as THREE from "three";
+import { initDisplay } from "./display.js";
 
 let layers;
 let layerIdx = 0;
@@ -319,6 +320,15 @@ function polygonate(imageData) {
             }
         }
     }
+    // edge case: manually mark all touched that are next to the wall as boundaries
+    for (let x = 0; x < imageData.width; x++) {
+        if (pxIsTouched(imageData, x, 0)) pixelFlags[x][0] = -1;
+        if (pxIsTouched(imageData, x, imageData.height - 1)) pixelFlags[x][imageData.height - 1] = -1;
+    }
+    for (let y = 0; y < imageData.height; y++) {
+        if (pxIsTouched(imageData, 0, y)) pixelFlags[0][y] = -1;
+        if (pxIsTouched(imageData, imageData.width - 1, y)) pixelFlags[imageData.width - 1][y] = -1;
+    }
 
     // TODO fix adjacent hole/boundary handling
     // (holes with shared boundaries)
@@ -370,17 +380,28 @@ function polygonate(imageData) {
                 }
             }
         }
-        return shapes;
     }
+    return shapes;
 
 }
 
-let allShapes = [];
+let allGeometries = [];
 document.getElementById("next-layer").addEventListener("click", () => {
-    allShapes.push(...polygonate(ctx.getImageData(0, 0, canvas.width, canvas.height)));
-    if (layerIdx === numLayers) {
-        ;
+    let shapes = polygonate(ctx.getImageData(0, 0, canvas.width, canvas.height));
+    const layerHeight = 1 / (numLayers - 1);
+    for (const shape of shapes) {
+        const geo = new THREE.ExtrudeGeometry([shape], {
+                depth: layerHeight,
+                bevelEnabled: false
+            })
+            .translate(0, 0, layerIdx * layerHeight);
+        allGeometries.push(geo);
+    }
+    if (layerIdx === numLayers - 1) {
+        gameScreen.style.display = "none";
+        initDisplay(allGeometries);
     } else {
         drawLayer(++layerIdx);
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
     }
 });

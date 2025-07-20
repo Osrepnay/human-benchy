@@ -225,7 +225,7 @@ pub fn slice(triangles: &Vec<Triangle>, layers: usize) -> Vec<Layer> {
         y: (point.y - y_min) / range,
     };
 
-    let layer_height = (z_max - z_min) / (layers as f64);
+    let layer_height = (z_max - z_min) / (layers as f64 - 1.0);
     let mut layers = Vec::new();
     let mut curr_z = z_min;
     loop {
