@@ -82,7 +82,7 @@ pub struct Layer {
     // doesn't do closed shapes but we don't need that for now
     // we're just drawing the segments
     pub segments: Vec<Vec<Point2d>>,
-    pub z: f64,
+    pub z_height: f64,
 }
 
 // not super good but all values are within [0, 1]
@@ -252,7 +252,7 @@ pub fn slice(triangles: &Vec<Triangle>, layers: usize) -> Vec<Layer> {
             let final_segments = segments.iter().map(rdp).collect();
             layers.push(Layer {
                 segments: final_segments,
-                z: curr_z,
+                z_height: layer_height / range,
             });
             curr_z += layer_height;
         }

@@ -29,6 +29,16 @@ pub unsafe fn get_segment(
 }
 
 #[wasm_bindgen]
+pub unsafe fn total_height(layers: *const Vec<Layer>) -> f64 {
+    unsafe { (*layers).iter().map(|l| l.z_height).sum() }
+}
+
+#[wasm_bindgen]
+pub unsafe fn get_layer_height(layer_idx: usize, layers: *const Vec<Layer>) -> f64 {
+    unsafe { (*layers)[layer_idx].z_height }
+}
+
+#[wasm_bindgen]
 pub unsafe fn release_layers(layers: *const Vec<Layer>) {
     unsafe {
         drop(Box::from_raw(layers.cast_mut()));

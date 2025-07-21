@@ -5,21 +5,37 @@ import { initDisplay } from "./display.js";
 let layers;
 let layerIdx = 0;
 let numLayers;
+let totalScale;
+let cheatmode = true;
 
 export function initDraw(num, l) {
     numLayers = num;
     layers = l;
+    const totalHeight = bs.total_height(layers);
+    if (totalHeight > 1) {
+        totalScale = 1 / totalHeight; 
+    } else {
+        totalScale = 1;
+    }
+    console.log(totalHeight);
     gameScreen.style.display = "flex";
     resizeCanvas();
     drawLayer(layerIdx);
+    if (cheatmode) {
+        drawLayerCheat(layerIdx);
+    }
 }
 
 const gameScreen = document.getElementById("game-screen");
 
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
+let brushWidth = canvas.width / 50;
 ctx.lineJoin = "round";
 ctx.lineCap = "round";
+ctx.strokeStyle = "red";
+ctx.fillStyle = "red";
+ctx.lineWidth = brushWidth;
 
 // for drawing the slice
 const layerCanvas = document.getElementById("layer-canvas");
@@ -58,22 +74,32 @@ function resizeCanvas() {
 window.addEventListener("resize", resizeCanvas);
 
 let tool = "brush";
-["brush", "fill"].forEach((t) => document.getElementById(t).addEventListener("mousedown", () => tool = t));
+["brush", "fill"].forEach((t) => document.getElementById(t).addEventListener("click", () => tool = t));
 
-let brushWidth = canvas.width / 50;
+document.getElementById("reset-layer").addEventListener("click", () => {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+});
+
+document.addEventListener("keydown", (e) => {
+    if (e.key === "b") {
+        tool = "brush";
+    } else if (e.key === "f") {
+        tool = "fill";
+    } else if (e.key === "Enter") {
+        document.getElementById("next-layer").click();
+    }
+});
+
 let lastPoint = null;
-canvas.addEventListener("mousemove", (e) => {
+canvas.addEventListener("pointermove", (e) => {
     if (tool === "brush") {
         if (e.buttons != 0) {
             const point = { x: transformX(e.clientX), y: transformY(e.clientY) };
 
-            ctx.strokeStyle = "red";
-            ctx.fillStyle = "red";
-            ctx.lineWidth = brushWidth;
             if (!lastPoint) {
                 lastPoint = point;
             }
-            console.log(lastPoint.x, point.x);
+            ctx.lineWidth = brushWidth;
             ctx.moveTo(lastPoint.x, lastPoint.y);
             ctx.beginPath();
             ctx.lineTo(point.x, point.y);
@@ -88,17 +114,17 @@ canvas.addEventListener("mousemove", (e) => {
         }
     }
 });
-canvas.addEventListener("mousedown", (e) => {
+canvas.addEventListener("pointerdown", (e) => {
     console.log(transformX(e.clientX), transformY(e.clientY));
     if (tool === "fill") {
         floodfill(Math.round(transformX(e.clientX)), Math.round(transformY(e.clientY)));
     } else if (tool === "brush") {
         const point = { x: transformX(e.clientX), y: transformY(e.clientY) };
         lastPoint = point;
-        ctx.strokeStyle = "red";
-        ctx.fillStyle = "red";
         ctx.lineWidth = brushWidth;
+        ctx.beginPath();
         ctx.arc(point.x, point.y, brushWidth / 2, 0, 2 * Math.PI);
+        ctx.closePath();
         ctx.fill();
     }
 });
@@ -187,28 +213,6 @@ function floodfill(startX, startY) {
     ctx.putImageData(origData, 0, 0);
 }
 
-function drawUserLine() {
-    const cb = () => {
-        if (currPath.length > 0) {
-            ctx.strokeStyle = "red";
-            ctx.fillStyle = "red";
-            ctx.lineWidth = brushWidth;
-            if (currPath.length > 1) {
-                ctx.beginPath();
-                ctx.moveTo(currPath[0].x, currPath[0].y);
-                for (let i = 1; i < currPath.length; i++) {
-                    ctx.lineTo(currPath[i].x, currPath[i].y);
-                }
-                ctx.stroke();
-            }
-
-            currPath = [currPath[currPath.length -1]];
-        }
-        window.requestAnimationFrame(cb);
-    };
-    window.requestAnimationFrame(cb);
-}
-
 function drawLayer(idx) {
     const layerScale = Math.min(layerCanvas.width, layerCanvas.height);
     layerCtx.clearRect(0, 0, layerCanvas.width, layerCanvas.height);
@@ -233,16 +237,42 @@ function drawLayer(idx) {
     }
 }
 
+function drawLayerCheat(idx) {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    ctx.lineWidth = 4;
+    ctx.strokeStyle = "red";
+
+    for (let i = 0; i < bs.layer_segments(idx, layers); i++) {
+        let segment = bs.get_segment(idx, i, layers)
+        ctx.beginPath();
+        let first = true;
+        for (const point of segment) {
+            if (first) {
+                ctx.moveTo(point.x * scale, point.y * scale);
+            } else {
+                ctx.lineTo(point.x * scale, point.y * scale);
+            }
+            first = false;
+        }
+        ctx.closePath();
+        ctx.stroke();
+    }
+}
+
 function loopPoints(imageData, points) {
+    // nasty detail:
+    // orthogonal deltas have to be ordered first
+    // to properly deal with square corners
     const deltas = [
-        { x: 1, y: 1 },
-        { x: -1, y: -1 },
-        { x: 1, y: -1 },
-        { x: -1, y: 1 },
         { x: 1, y: 0 },
         { x: 0, y: 1 },
         { x: -1, y: 0 },
-        { x: 0, y: -1 }
+        { x: 0, y: -1 },
+        { x: 1, y: 1 },
+        { x: -1, y: -1 },
+        { x: 1, y: -1 },
+        { x: -1, y: 1 }
     ];
     
     let path = [];
@@ -287,103 +317,101 @@ function loopPoints(imageData, points) {
 }
 
 function polygonate(imageData) {
-    // scan unfilled sections to determine whether they are
-    // 1. free/normal (sees image border) or
-    // 2. a hole
-    // 3. boundary of filled
+    const pxOnCanvasEdge = (x, y) => {
+        return x === 0 ||
+            y === 0 ||
+            x == imageData.width - 1 ||
+            y == imageData.height - 1;
+    };
+
     let pixelFlags = new Array(imageData.width);
     for (let x = 0; x < pixelFlags.length; x++) {
         pixelFlags[x] = new Array(imageData.height).fill(0);
     }
-    // each unfilled section gets its own identifier
-    let nthUnfilled = 1;
-    // hole boundaries can overlap so we can't rely on pixelFlags for this
-    // not sure if normal outer boundaries have a similar problem
-    // not obviously so far
-    let allHoles = [];
+
+    let shapes = [];
+    const deltas = [
+        { x: 1, y: 0 },
+        { x: 0, y: 1 },
+        { x: -1, y: 0 },
+        { x: 0, y: -1 }
+    ];
+    let nthShape = 1;
     for (let x = 0; x < imageData.width; x++) {
         for (let y = 0; y < imageData.height; y++) {
-            if (!pxIsTouched(imageData, x, y) && pixelFlags[x][y] === 0) {
-                let isHole = true;
-                // points that 
-                let contacts = [];
-                let mark = (x, y) => {
-                    // boundary pixel
-                    if (x === 0 || y === 0 || x === imageData.width - 1 || y === imageData.height - 1) {
-                        isHole = false;
-                    }
-                    pixelFlags[x][y] = nthUnfilled;
+            if (pxIsTouched(imageData, x, y) && pixelFlags[x][y] === 0) {
+                let shell = new Set();
+                const mark = (x, y) => {
+                    pixelFlags[x][y] = nthShape;
                 };
-                let check = (x, y) => {
-                    let touched = pxIsTouched(imageData, x, y);
-                    let visited = pixelFlags[x][y] === nthUnfilled;
-                    if (touched && !visited) {
-                        contacts.push({ x: x, y: y });
+                const check = (x, y) => {
+                    if (!pxIsTouched(imageData, x, y)) {
+                        shell.add(x + y * imageData.width);
+                        return true;
+                    } else {
+                        return pixelFlags[x][y] !== 0;
                     }
-                    return touched || visited;
                 };
                 floodfillGeneric(mark, check, x, y, imageData.width, imageData.height);
-                if (isHole) {
-                    let hole = new Set();
-                    contacts.forEach((pt) => {
-                        pixelFlags[pt.x][pt.y] = -2;
-                        hole.add(pt.x + pt.y * imageData.width);
-                    });
-                    allHoles.push(hole);
-                } else {
-                    contacts.forEach((pt) => {
-                        pixelFlags[pt.x][pt.y] = -1;
-                    });
-                }
-                nthUnfilled++;
-            }
-        }
-    }
-    // edge case: manually mark all touched that are next to the wall as boundaries
-    for (let x = 0; x < imageData.width; x++) {
-        if (pxIsTouched(imageData, x, 0)) pixelFlags[x][0] = -1;
-        if (pxIsTouched(imageData, x, imageData.height - 1)) pixelFlags[x][imageData.height - 1] = -1;
-    }
-    for (let y = 0; y < imageData.height; y++) {
-        if (pxIsTouched(imageData, 0, y)) pixelFlags[0][y] = -1;
-        if (pxIsTouched(imageData, imageData.width - 1, y)) pixelFlags[imageData.width - 1][y] = -1;
-    }
 
-    // TODO fix adjacent hole/boundary handling
-    // (holes with shared boundaries)
-    // everything being in a single pixelFlags really limits reasonable options
-    // i wanna get it working first
-
-    // check filled sections to find boundaries
-    // this code breaks if the boundaries branch
-    // but that would require like a 1px wide line
-    // which is kinda hard to do normally
-    let shapes = [];
-    for (let x = 0; x < imageData.width; x++) {
-        for (let y = 0; y < imageData.height; y++) {
-            if (pxIsTouched(imageData, x, y) && pixelFlags[x][y] !== -3) {
-                let boundary = new Set();
+                let outerBoundary = null;
                 let holes = [];
-                let marked = 0;
-                let mark = (x, y) => {
-                    marked++;
-                    if (pixelFlags[x][y] == -1) {
-                        boundary.add(x + y * imageData.width);
-                    } else if (pixelFlags[x][y] == -2) {
-                        for (let i = 0; i < allHoles.length; i++) {
-                            if (allHoles[i].has(x + y * imageData.width)) {
-                                holes.push(allHoles[i]);
-                                allHoles.splice(i, 1);
+                while (shell.size > 0) {
+                    const shellPt = shell.values().next().value; 
+                    const shellPtX = shellPt % imageData.width;
+                    const shellPtY = Math.floor(shellPt / imageData.width);
+                    let isOuter = false;
+                    // can't put this in pixelFlags because multiple shapes will probably
+                    // end up searching the same space
+                    let searched = new Set();
+                    let touchingShape = new Set();
+
+                    const outerMark = (x, y) => {
+                        shell.delete(x + y * imageData.width);
+                        return searched.add(x + y * imageData.width);
+                    };
+                    const outerCheck = (x, y) => {
+                        // this shell can "see" the canvas edge (ignoring other shapes),
+                        // so it must be an outer boundary
+                        if (pxOnCanvasEdge(x, y)) {
+                            isOuter = true;
+                        }
+                        if (pixelFlags[x][y] === nthShape) {
+                            touchingShape.add(x + y * imageData.width);
+                            return true;
+                        } else {
+                            return searched.has(x + y * imageData.width);
+                        }
+                    };
+                    floodfillGeneric(outerMark, outerCheck, shellPtX, shellPtY, imageData.width, imageData.height);
+
+                    if (isOuter) {
+                        console.assert(!outerBoundary, "duplicate boundaries found for shape");
+                        // edge case: manually mark all touched that are next to the wall as boundaries
+                        for (let x = 0; x < imageData.width; x++) {
+                            if (pxIsTouched(imageData, x, 0)) {
+                                touchingShape.add(x + 0 * imageData.width);
+                            }
+                            if (pxIsTouched(imageData, x, imageData.height - 1)) {
+                                touchingShape.add(x + (imageData.height - 1) * imageData.width);
                             }
                         }
+                        for (let y = 0; y < imageData.height; y++) {
+                            if (pxIsTouched(imageData, 0, y)) {
+                                touchingShape.add(0 + y * imageData.width);
+                            }
+                            if (pxIsTouched(imageData, imageData.width - 1, y)) {
+                                touchingShape.add(imageData.width - 1 + y * imageData.width);
+                            }
+                        }
+                        outerBoundary = touchingShape;
+                    } else {
+                        holes.push(touchingShape);
                     }
-                    pixelFlags[x][y] = -3;
-                };
-                let check = (x, y) => !pxIsTouched(imageData, x, y) || pixelFlags[x][y] === -3;
-                floodfillGeneric(mark, check, x, y, imageData.width, imageData.height);
+                }
 
                 // make the shape
-                let boundaryLoop = loopPoints(imageData, boundary);
+                let boundaryLoop = loopPoints(imageData, outerBoundary);
                 let holeLoops = holes.map((hole) => {
                     let looped = loopPoints(imageData, hole);
                     if (!looped) {
@@ -393,28 +421,35 @@ function polygonate(imageData) {
                 });
                 // error handling! how uncharacteristic!
                 if (boundaryLoop && holeLoops.every((h) => h)) {
+                    console.log("found shape");
                     let shape = new THREE.Shape(boundaryLoop);
                     shape.holes = holeLoops;
                     if (shape) shapes.push(shape);
+                } else {
+                    console.log("failed to loop shape", boundaryLoop, holeLoops);
                 }
+
+                nthShape++;
             }
         }
     }
     return shapes;
-
 }
 
 let allGeometries = [];
+let currHeight = 0;
 document.getElementById("next-layer").addEventListener("click", () => {
+    lastPoint = null;
     let shapes = polygonate(ctx.getImageData(0, 0, canvas.width, canvas.height));
-    const layerHeight = 1 / numLayers
     for (const shape of shapes) {
+        const height = bs.get_layer_height(layerIdx, layers);
         const geo = new THREE.ExtrudeGeometry([shape], {
-                depth: layerHeight,
+                depth: height,
                 bevelEnabled: false
             })
-            .translate(0, 0, layerIdx * layerHeight);
+            .translate(0, 0, currHeight);
         allGeometries.push(geo);
+        currHeight += height;
     }
     if (layerIdx >= numLayers - 1) {
         gameScreen.style.display = "none";
@@ -422,5 +457,8 @@ document.getElementById("next-layer").addEventListener("click", () => {
     } else {
         drawLayer(++layerIdx);
         ctx.clearRect(0, 0, canvas.width, canvas.height);
+        if (cheatmode) {
+            drawLayerCheat(layerIdx);
+        }
     }
 });
