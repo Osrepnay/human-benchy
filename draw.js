@@ -85,7 +85,7 @@ document.addEventListener("keydown", (e) => {
         tool = "brush";
     } else if (e.key === "f") {
         tool = "fill";
-    } else if (e.key === "Enter") {
+    } else if (e.key === "Enter" && gameScreen.style.display !== "none") {
         document.getElementById("next-layer").click();
     }
 });
@@ -423,6 +423,7 @@ function polygonate(imageData) {
                 if (boundaryLoop && holeLoops.every((h) => h)) {
                     console.log("found shape");
                     let shape = new THREE.Shape(boundaryLoop);
+                    shape.scale = new THREE.Vector3(totalScale, totalScale, totalScale);
                     shape.holes = holeLoops;
                     if (shape) shapes.push(shape);
                 } else {
@@ -441,16 +442,16 @@ let currHeight = 0;
 document.getElementById("next-layer").addEventListener("click", () => {
     lastPoint = null;
     let shapes = polygonate(ctx.getImageData(0, 0, canvas.width, canvas.height));
+    const height = bs.get_layer_height(layerIdx, layers) * totalScale;
     for (const shape of shapes) {
-        const height = bs.get_layer_height(layerIdx, layers);
         const geo = new THREE.ExtrudeGeometry([shape], {
                 depth: height,
                 bevelEnabled: false
             })
             .translate(0, 0, currHeight);
         allGeometries.push(geo);
-        currHeight += height;
     }
+    currHeight += height;
     if (layerIdx >= numLayers - 1) {
         gameScreen.style.display = "none";
         initDisplay(allGeometries);

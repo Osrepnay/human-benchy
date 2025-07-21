@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(60, 1, 0.01, 1000);
@@ -13,11 +14,13 @@ export function initDisplay(geometries) {
     renderer = new THREE.WebGLRenderer({
         canvas: renderCanvas
     });
-    let light = new THREE.DirectionalLight(0xffffff, 1);
-    light.position.set(1, 1, 1);
-    light.target.position.set(0.5, 0.5, 0.5);
-    scene.add(light);
-    scene.add(new THREE.AmbientLight(0xffffff, 0.3));
+    let light1 = new THREE.PointLight(0xffffff, 20);
+    light1.position.set(2, 2, 2);
+    scene.add(light1);
+    let light2 = new THREE.PointLight(0xffffff, 10);
+    light2.position.set(-2, -2, 1.1);
+    scene.add(light2);
+    scene.add(new THREE.AmbientLight(0xffffff, 0.1));
     for (const geometry of geometries) {
         const material = new THREE.MeshPhongMaterial({ color: 0xff0000 });
         const mesh = new THREE.Mesh(geometry, material);
@@ -29,6 +32,10 @@ export function initDisplay(geometries) {
     camera.position.y = 0.5 - coordDelta;
     camera.position.z = 0.5 + coordDelta;
     camera.lookAt(0.5, 0.5, 0.5);
+
+    let controls = new OrbitControls(camera, renderer.domElement);
+    controls.target = new THREE.Vector3(0.5, 0.5, 0.5);
+
     renderer.setSize(renderCanvas.width, renderCanvas.height);
     renderer.setAnimationLoop(() => renderer.render(scene, camera));
 }
