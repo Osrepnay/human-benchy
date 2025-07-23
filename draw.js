@@ -214,6 +214,7 @@ function floodfill(startX, startY) {
 }
 
 function drawLayer(idx) {
+    return;
     const layerScale = Math.min(layerCanvas.width, layerCanvas.height);
     layerCtx.clearRect(0, 0, layerCanvas.width, layerCanvas.height);
 
@@ -247,8 +248,10 @@ function drawLayerCheat(idx) {
         let segment = bs.get_segment(idx, i, layers)
         ctx.beginPath();
         let first = true;
+        let firstP;
         for (const point of segment) {
             if (first) {
+                firstP = point;
                 ctx.moveTo(point.x * scale, point.y * scale);
             } else {
                 ctx.lineTo(point.x * scale, point.y * scale);
@@ -260,179 +263,209 @@ function drawLayerCheat(idx) {
     }
 }
 
-function loopPoints(imageData, points) {
-    // nasty detail:
-    // orthogonal deltas have to be ordered first
-    // to properly deal with square corners
-    const deltas = [
-        { x: 1, y: 0 },
-        { x: 0, y: 1 },
-        { x: -1, y: 0 },
-        { x: 0, y: -1 },
-        { x: 1, y: 1 },
-        { x: -1, y: -1 },
-        { x: 1, y: -1 },
-        { x: -1, y: 1 }
-    ];
-    
-    let path = [];
-    let visited = new Set();
-    let point = points.values().next().value;
-    const firstPoint = point;
-    path.push(new THREE.Vector2((point % imageData.width) / imageData.width, point / imageData.height / imageData.height));
-    visited.add(point);
+const v = (x, y) => new THREE.Vector2(x, y);
+// square layout (0 is lsb, 3 is msb)
+// 0 1
+// 2 3
+const squares = [
+    // 0000
+    [],
+    // 0001
+    [[v(1, 0), v(0, 1)]],
+    // 0010
+    [[v(1, 0), v(2, 1)]],
+    // 0011
+    [[v(0, 1), v(2, 1)]],
+    // 0100
+    [[v(0, 1), v(1, 2)]],
+    // 0101
+    [[v(1, 0), v(1, 2)]],
+    // 0110
+    [
+        [v(1, 0), v(2, 1)],
+        [v(0, 1), v(1, 2)]
+    ],
+    // 0111
+    [[v(2, 1), v(1, 2)]],
+    // 1000
+    [[v(2, 1), v(1, 2)]],
+    // 1001
+    [
+        [v(1, 0), v(0, 1)],
+        [v(2, 1), v(1, 2)]
+    ],
+    // 1010
+    [[v(1, 0), v(1, 2)]],
+    // 1011
+    [[v(0, 1), v(1, 2)]],
+    // 1100
+    [[v(0, 1), v(2, 1)]],
+    // 1101
+    [[v(1, 0), v(2, 1)]],
+    // 1110
+    [[v(1, 0), v(0, 1)]],
+    // 1111
+    []
+];
 
-    outer:
-    while (visited.size < points.size) {
-        for (const delta of deltas) {
-            let flatDelta = delta.x + delta.y * imageData.width;
-            let newPoint = point + flatDelta;
-            if (points.has(newPoint) && !visited.has(newPoint)) {
-                visited.add(newPoint);
-                point = newPoint;
-                path.push(new THREE.Vector2((point % imageData.width) / imageData.width,
-                        point / imageData.height / imageData.height));
-                continue outer;
-            }
+function squareContours(imageData, sqTester, topLeftX, topLeftY) {
+    const squareBit = (x, y) => {
+        if (x < 0 || y < 0 || x >= imageData.width || y >= imageData.height) {
+            return 0;
+        } else if (sqTester(x, y)) {
+            return 1;
+        } else {
+            return 0;
         }
-        break;
-    }
-
-    let loops = false;
-    for (const delta of deltas) {
-        let flatDelta = delta.x + delta.y * imageData.width;
-        if (point + flatDelta == firstPoint) {
-            loops = true;
-            break;
-        }
-    }
-
-    if (!loops) {
-        return null;
-    }
-
-    path.push(new THREE.Vector2((firstPoint % imageData.width) / imageData.width,
-            firstPoint / imageData.height / imageData.height));
-    return path;
+    };
+    const sq0 = squareBit(topLeftX, topLeftY);
+    const sq1 = squareBit(topLeftX + 1, topLeftY);
+    const sq2 = squareBit(topLeftX, topLeftY + 1);
+    const sq3 = squareBit(topLeftX + 1, topLeftY + 1);
+    const contours = squares[sq3 * 8 + sq2 * 4 + sq1 * 2 + sq0];
+    return contours.map((c) => c.map((vec) => new THREE.Vector2(topLeftX + vec.x / 2, topLeftY + vec.y / 2)));
 }
 
 function polygonate(imageData) {
-    const pxOnCanvasEdge = (x, y) => {
-        return x === 0 ||
-            y === 0 ||
-            x == imageData.width - 1 ||
-            y == imageData.height - 1;
-    };
+    const orthoDeltas = [
+        { x: 1, y: 0 },
+        { x: 0, y: 1 },
+        { x: -1, y: 0 },
+        { x: 0, y: -1 }
+    ];
 
     let pixelFlags = new Array(imageData.width);
     for (let x = 0; x < pixelFlags.length; x++) {
         pixelFlags[x] = new Array(imageData.height).fill(0);
     }
 
-    let shapes = [];
-    const deltas = [
-        { x: 1, y: 0 },
-        { x: 0, y: 1 },
-        { x: -1, y: 0 },
-        { x: 0, y: -1 }
-    ];
     let nthShape = 1;
     for (let x = 0; x < imageData.width; x++) {
         for (let y = 0; y < imageData.height; y++) {
             if (pxIsTouched(imageData, x, y) && pixelFlags[x][y] === 0) {
-                let shell = new Set();
                 const mark = (x, y) => {
                     pixelFlags[x][y] = nthShape;
                 };
-                const check = (x, y) => {
-                    if (!pxIsTouched(imageData, x, y)) {
-                        shell.add(x + y * imageData.width);
-                        return true;
-                    } else {
-                        return pixelFlags[x][y] !== 0;
-                    }
-                };
+                const check = (x, y) => pixelFlags[x][y] !== 0 || !pxIsTouched(imageData, x, y);
                 floodfillGeneric(mark, check, x, y, imageData.width, imageData.height);
-
-                let outerBoundary = null;
-                let holes = [];
-                while (shell.size > 0) {
-                    const shellPt = shell.values().next().value; 
-                    const shellPtX = shellPt % imageData.width;
-                    const shellPtY = Math.floor(shellPt / imageData.width);
-                    let isOuter = false;
-                    // can't put this in pixelFlags because multiple shapes will probably
-                    // end up searching the same space
-                    let searched = new Set();
-                    let touchingShape = new Set();
-
-                    const outerMark = (x, y) => {
-                        shell.delete(x + y * imageData.width);
-                        return searched.add(x + y * imageData.width);
-                    };
-                    const outerCheck = (x, y) => {
-                        // this shell can "see" the canvas edge (ignoring other shapes),
-                        // so it must be an outer boundary
-                        if (pxOnCanvasEdge(x, y)) {
-                            isOuter = true;
-                        }
-                        if (pixelFlags[x][y] === nthShape) {
-                            touchingShape.add(x + y * imageData.width);
-                            return true;
-                        } else {
-                            return searched.has(x + y * imageData.width);
-                        }
-                    };
-                    floodfillGeneric(outerMark, outerCheck, shellPtX, shellPtY, imageData.width, imageData.height);
-
-                    if (isOuter) {
-                        console.assert(!outerBoundary, "duplicate boundaries found for shape");
-                        // edge case: manually mark all touched that are next to the wall as boundaries
-                        for (let x = 0; x < imageData.width; x++) {
-                            if (pxIsTouched(imageData, x, 0)) {
-                                touchingShape.add(x + 0 * imageData.width);
-                            }
-                            if (pxIsTouched(imageData, x, imageData.height - 1)) {
-                                touchingShape.add(x + (imageData.height - 1) * imageData.width);
-                            }
-                        }
-                        for (let y = 0; y < imageData.height; y++) {
-                            if (pxIsTouched(imageData, 0, y)) {
-                                touchingShape.add(0 + y * imageData.width);
-                            }
-                            if (pxIsTouched(imageData, imageData.width - 1, y)) {
-                                touchingShape.add(imageData.width - 1 + y * imageData.width);
-                            }
-                        }
-                        outerBoundary = touchingShape;
-                    } else {
-                        holes.push(touchingShape);
-                    }
-                }
-
-                // make the shape
-                let boundaryLoop = loopPoints(imageData, outerBoundary);
-                let holeLoops = holes.map((hole) => {
-                    let looped = loopPoints(imageData, hole);
-                    if (!looped) {
-                        return null;
-                    }
-                    return new THREE.Path(looped);
-                });
-                // error handling! how uncharacteristic!
-                if (boundaryLoop && holeLoops.every((h) => h)) {
-                    console.log("found shape");
-                    let shape = new THREE.Shape(boundaryLoop);
-                    shape.scale = new THREE.Vector3(totalScale, totalScale, totalScale);
-                    shape.holes = holeLoops;
-                    if (shape) shapes.push(shape);
-                } else {
-                    console.log("failed to loop shape", boundaryLoop, holeLoops);
-                }
 
                 nthShape++;
             }
         }
+    }
+
+
+    let shapes = [];
+    for (let shapeIdx = 1; shapeIdx < nthShape; shapeIdx++) {
+        const sqTester = (x, y) => pixelFlags[x][y] === shapeIdx;
+        let segments = [];
+        let segPointMap = new Map();
+        // deliberately go off-canvas to get contours on shapes touching the wall
+        for (let x = -1; x < imageData.width; x++) {
+            for (let y = -1; y < imageData.height; y++) {
+                const segment = squareContours(imageData, sqTester, x, y);
+                if (segment.length === 0) {
+                    continue;
+                }
+
+                segment.forEach((s) => {
+                    for (let i = 0; i < s.length; i++) {
+                        const pt = s[i].x + s[i].y * imageData.width;
+                        if (segPointMap.has(pt)) {
+                            segPointMap.get(pt).push({
+                                "startIdx": i,
+                                "segmentsIdx": segments.length
+                            });
+                        } else {
+                            segPointMap.set(pt, [{
+                                "startIdx": i,
+                                "segmentsIdx": segments.length
+                            }]);
+                        }
+                    }
+                    segments.push(s);
+                });
+            }
+        }
+        console.log(shapeIdx, segments);
+
+        if (segments.length === 0) {
+            continue;
+        }
+
+        let loops = [];
+        let addedSegs = new Set();
+        let currLoop = [];
+        outer:
+        while (addedSegs.size < segments.length) {
+            if (currLoop.length === 0) {
+                for (let i = 0; i < segments.length; i++) {
+                    if (!addedSegs.has(i)) {
+                        currLoop = [...segments[i]];
+                        addedSegs.add(i);
+                        break;
+                    }
+                }
+            }
+            let end = currLoop.at(-1);
+            if (segPointMap.has(end.x + end.y * imageData.width)) {
+                for (const ptData of segPointMap.get(end.x + end.y * imageData.width)) {
+                    if (!addedSegs.has(ptData.segmentsIdx)) {
+                        addedSegs.add(ptData.segmentsIdx);
+                        // all segments only have length of 2
+                        // ignore the one at startIdx because that's the one we already have
+                        // in currLoop by definition
+                        currLoop.push(segments[ptData.segmentsIdx][1 - ptData.startIdx]);
+
+                        if (currLoop.at(-1).x === currLoop[0].x && currLoop.at(-1).y === currLoop[0].y) {
+                            for (let pt of currLoop) {
+                                pt.x /= imageData.width;
+                                pt.y /= imageData.height;
+                            }
+                            loops.push(currLoop);
+                            currLoop = [];
+                        }
+                        continue outer;
+                    }
+                }
+            }
+
+            console.log(currLoop, currLoop[0], currLoop.at(-1));
+            // spaghetti
+            break;
+        }
+        console.log("loops", loops);
+
+        // outer boundary must have the highest bounds
+        let maxBoundScore = Number.MIN_SAFE_INTEGER;
+        let maxBoundIdx = -1;
+        for (let i = 0; i < loops.length; i++) {
+            let minX = Number.MAX_SAFE_INTEGER;
+            let maxX = Number.MIN_SAFE_INTEGER;
+            let minY = Number.MAX_SAFE_INTEGER;
+            let maxY = Number.MIN_SAFE_INTEGER;
+            for (const px of loops[i]) {
+                minX = Math.min(minX, px.x);
+                maxX = Math.max(maxX, px.x);
+                minY = Math.min(minY, px.y);
+                maxY = Math.max(maxY, px.y);
+            }
+            const score = (maxX - minX) + (maxY - minY);
+            if (score > maxBoundScore) {
+                maxBoundScore = score;
+                maxBoundIdx = i;
+            }
+        }
+        const boundaryLoop = loops[maxBoundIdx];
+        loops.splice(maxBoundIdx, 1);
+        const holeLoops = loops.map((h) => new THREE.Path(h));
+
+        console.assert(boundaryLoop && holeLoops.every((h) => h), "failed to loop shape");
+
+        let shape = new THREE.Shape(boundaryLoop);
+        shape.scale = new THREE.Vector3(totalScale, totalScale, totalScale);
+        shape.holes = holeLoops;
+        if (shape) shapes.push(shape);
     }
     return shapes;
 }
@@ -442,6 +475,9 @@ let currHeight = 0;
 document.getElementById("next-layer").addEventListener("click", () => {
     lastPoint = null;
     let shapes = polygonate(ctx.getImageData(0, 0, canvas.width, canvas.height));
+    if (!shapes) {
+        return;
+    }
     const height = bs.get_layer_height(layerIdx, layers) * totalScale;
     for (const shape of shapes) {
         const geo = new THREE.ExtrudeGeometry([shape], {
