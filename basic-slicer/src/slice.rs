@@ -149,18 +149,21 @@ fn join_segments(segments: &mut Vec<VecDeque<Point2d>>) {
 
 const RDP_EPSILON: f64 = 1e-4;
 
+// https://stackoverflow.com/a/1501725/9509713
+// i dont know linalg and i dont trust myself to write a version
+// that handles edge cases correctly
 fn point_line_dist(point: Point2d, line_start: Point2d, line_end: Point2d) -> f64 {
-    let delta_x = line_end.x - line_start.x;
-    let delta_y = line_end.y - line_start.y;
-    if delta_x == 0.0 && delta_y == 0.0 {
-        ((line_end.x - point.x).powi(2) + (line_end.y - point.y).powi(2)).sqrt()
-    } else {
-        // i cba think rn. this is from wikipedia
-        (delta_y * point.x - delta_x * point.y + line_end.x * line_start.y
-            - line_end.y * line_start.x)
-            .abs()
-            / (delta_y.powi(2) + delta_x.powi(2)).sqrt()
+    let length_squared = (line_start.x - line_end.x).powi(2) + (line_start.y - line_end.y).powi(2);
+    if length_squared == 0.0 {
+        return (line_start.x - point.x).powi(2) + (line_start.y - point.y).powi(2);
     }
+    let t = ((point.x - line_start.x) * (line_end.x - line_start.x)
+        + (point.y - line_start.y) * (line_end.y - line_start.y))
+        / length_squared;
+    let clamped = t.clamp(0.0, 1.0);
+    ((point.x - (line_start.x + clamped * (line_end.x - line_start.x))).powi(2)
+        + (point.y - (line_start.y + clamped * (line_end.y - line_start.y))).powi(2))
+    .sqrt()
 }
 
 // ramer douglas peucker
@@ -174,6 +177,11 @@ fn rdp(segment: &VecDeque<Point2d>) -> Vec<Point2d> {
 
     while pair_stack.len() > 0 {
         let (start, end) = pair_stack.pop().unwrap();
+        if (end - start) < 2 {
+            keep_idxs.insert(start);
+            keep_idxs.insert(end);
+            continue;
+        }
         let mut max_dist = RDP_EPSILON;
         let mut max_dist_idx = 0;
         for i in (start + 1)..end {
