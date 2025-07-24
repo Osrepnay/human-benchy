@@ -20,9 +20,10 @@ export function initDisplay(geometries) {
     let light2 = new THREE.PointLight(0xffffff, 10);
     light2.position.set(-2, -2, 1.1);
     scene.add(light2);
-    scene.add(new THREE.AmbientLight(0xffffff, 0.1));
+    scene.add(new THREE.AmbientLight(0xffffff, 0.5));
     for (const geometry of geometries) {
         const material = new THREE.MeshPhongMaterial({ color: 0xff0000 });
+        material.side = THREE.DoubleSide;
         const mesh = new THREE.Mesh(geometry, material);
         scene.add(mesh);
     }

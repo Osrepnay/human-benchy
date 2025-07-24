@@ -5,7 +5,7 @@ const pickerScreen = document.getElementById("picker-screen");
 
 const stlPicker = document.getElementById("stl-picker");
 
-let numLayers = 50;
+let numLayers = 10;
 
 function startGame(layers) {
     pickerScreen.style.display = "none";

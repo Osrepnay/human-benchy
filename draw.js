@@ -214,7 +214,6 @@ function floodfill(startX, startY) {
 }
 
 function drawLayer(idx) {
-    return;
     const layerScale = Math.min(layerCanvas.width, layerCanvas.height);
     layerCtx.clearRect(0, 0, layerCanvas.width, layerCanvas.height);
 
@@ -361,6 +360,7 @@ function polygonate(imageData) {
         let segments = [];
         let segPointMap = new Map();
         // deliberately go off-canvas to get contours on shapes touching the wall
+        // TODO mark areas of interst so we don't have to do full screen scan each time
         for (let x = -1; x < imageData.width; x++) {
             for (let y = -1; y < imageData.height; y++) {
                 const segment = squareContours(imageData, sqTester, x, y);
@@ -387,7 +387,6 @@ function polygonate(imageData) {
                 });
             }
         }
-        console.log(shapeIdx, segments);
 
         if (segments.length === 0) {
             continue;
@@ -422,7 +421,7 @@ function polygonate(imageData) {
                                 pt.x /= imageData.width;
                                 pt.y /= imageData.height;
                             }
-                            loops.push(currLoop);
+                            loops.push(currLoop.map((v) => v.multiplyScalar(totalScale)));
                             currLoop = [];
                         }
                         continue outer;
@@ -430,11 +429,9 @@ function polygonate(imageData) {
                 }
             }
 
-            console.log(currLoop, currLoop[0], currLoop.at(-1));
             // spaghetti
             break;
         }
-        console.log("loops", loops);
 
         // outer boundary must have the highest bounds
         let maxBoundScore = Number.MIN_SAFE_INTEGER;
@@ -463,7 +460,6 @@ function polygonate(imageData) {
         console.assert(boundaryLoop && holeLoops.every((h) => h), "failed to loop shape");
 
         let shape = new THREE.Shape(boundaryLoop);
-        shape.scale = new THREE.Vector3(totalScale, totalScale, totalScale);
         shape.holes = holeLoops;
         if (shape) shapes.push(shape);
     }
@@ -493,6 +489,7 @@ document.getElementById("next-layer").addEventListener("click", () => {
         initDisplay(allGeometries);
     } else {
         drawLayer(++layerIdx);
+        console.log("layer", layerIdx);
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         if (cheatmode) {
             drawLayerCheat(layerIdx);
