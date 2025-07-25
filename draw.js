@@ -30,12 +30,19 @@ const gameScreen = document.getElementById("game-screen");
 
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
-let brushWidth = canvas.width / 50;
+let brushWidth;
 ctx.lineJoin = "round";
 ctx.lineCap = "round";
 ctx.strokeStyle = "red";
 ctx.fillStyle = "red";
-ctx.lineWidth = brushWidth;
+
+const brushSizeInput = document.getElementById("brush-size");
+const updateBrushWidth = () => {
+    // flip it
+    brushWidth = brushSizeInput.value / 500 * canvas.width;
+};
+updateBrushWidth();
+brushSizeInput.addEventListener("change", updateBrushWidth);
 
 // for drawing the slice
 const layerCanvas = document.getElementById("layer-canvas");

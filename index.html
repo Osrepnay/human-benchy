@@ -1,10 +1,15 @@
 <!DOCTYPE html>
 <html>
     <style>
+* {
+    box-sizing: border-box;
+}
+
 html, body {
     padding: 0px;
     margin: 0px;
     height: 100%;
+    font-family: sans-serif;
 }
 
 #game-screen {
@@ -33,7 +38,6 @@ html, body {
     position: relative;
 
     border: 0.5em solid black;
-    box-sizing: border-box;
     width: calc(100% - 2em);
     height: calc(100% - 2em);
 }
@@ -63,11 +67,51 @@ html, body {
     align-items: flex-start;
     justify-content: center;
     margin: auto 0px;
+    font-size: 12pt;
+}
+
+button {
+    background: #ffffff00;
+    border: 0.3em solid black; 
+    font-weight: bold;
+    cursor: pointer;
+}
+
+button:hover {
+    border-color: #018484;
+    color: #018484;
+}
+
+button:active {
+    border-color: #0b9e9e;
+    color: #0b9e9e;
+}
+
+input::file-selector-button {
+    background: #ffffff00;
+    border: 0.3em solid black; 
+    font-weight: bold;
+    cursor: pointer;
+}
+
+input::file-selector-button:hover {
+    border-color: #018484;
+    color: #018484;
+}
+
+input::file-selector-button:active {
+    border-color: #0b9e9e;
+    color: #0b9e9e;
+}
+
+#brush-size-container {
+    margin: 0.5em;
 }
 
 #tools button {
     flex: 1 1 0;
-    margin: .5em;
+    margin: 0.5em;
+    font-size: 12pt;
 }
     </style>
     <body>
@@ -82,6 +126,11 @@ html, body {
                 </div>
             </div>
             <div id="tools">
+                <div id="brush-size-container">
+                    <label for="brush-size">Brush Size</label>
+                    <br>
+                    <input name="brush-size" id="brush-size" type="range" min="10" max="50" value="30">
+                </div>
                 <button id="brush">Brush (B)</button>
                 <button id="fill">Fill (F)</button>
                 <button id="reset-layer">Reset Layer</button>
