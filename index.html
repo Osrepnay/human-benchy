@@ -12,6 +12,32 @@ html, body {
     font-family: sans-serif;
 }
 
+#picker-screen {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    max-width: min(100%, 45em);
+    margin: auto;
+}
+
+#picker-screen p {
+    text-align: center;
+}
+
+#picker-screen > * {
+    margin: 0.6em;
+}
+
+#start-button {
+    font-size: 15pt;
+}
+
+#failed {
+    display: none;
+    color: red;
+    font-weight: bold;
+}
+
 #game-screen {
     display: flex;
     height: 100%;
@@ -75,6 +101,7 @@ button {
     border: 0.3em solid black; 
     font-weight: bold;
     cursor: pointer;
+    padding: 1px 4px;
 }
 
 button:hover {
@@ -87,21 +114,39 @@ button:active {
     color: #0b9e9e;
 }
 
-input::file-selector-button {
+button:disabled {
+    border-color: grey !important;
+    color: grey !important;
+    cursor: default !important;
+}
+
+input[type="file"] {
+    display: none;
+}
+
+/* same as button */
+#stl-picker-label {
     background: #ffffff00;
     border: 0.3em solid black; 
     font-weight: bold;
     cursor: pointer;
+    padding: 1px 4px;
 }
 
-input::file-selector-button:hover {
+#stl-picker-label:hover {
     border-color: #018484;
     color: #018484;
 }
 
-input::file-selector-button:active {
+#stl-picker-label:active {
     border-color: #0b9e9e;
     color: #0b9e9e;
+}
+
+.disabled-picker {
+    border-color: grey !important;
+    color: grey !important;
+    cursor: default !important;
 }
 
 #brush-size-container {
@@ -116,7 +161,27 @@ input::file-selector-button:active {
     </style>
     <body>
         <div id="picker-screen">
-            <input id="stl-picker" type="file" accept=".stl"> 
+            <h1>Human Benchy</h1>
+            <p>
+                Are you bored?
+                <br>
+                Do you want to print a benchy but don't have a 3D printer?
+                <br>
+                Do you have a 3d printer but it's being weird and so you cannot make the benchy?
+                <br>
+                Well, this website is for you!
+            </p>
+            <div>
+                <input id="use-benchy" name="use-benchy" type="checkbox" checked>
+                <label for="use-benchy">Use Benchy (~10MB download)</label>
+            </div>
+            <label for="stl-picker" id="stl-picker-label" class="disabled-picker">
+                Choose file
+            </label>
+            <input id="stl-picker" name="stl-picker" type="file" accept=".stl" disabled>
+            <button id="start-button">Go!</button>
+            <p id="failed">
+            </p>
         </div>
         <div id="game-screen" style="display: none;">
             <div id="canvas-container">

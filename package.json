@@ -9,6 +9,6 @@
   },
   "scripts": {
     "build": "node build.mjs",
-    "full-build": "cd basic-slicer && wasm-pack build && cd .. && node build.mjs"
+    "full-build": "sh build.sh"
   }
 }

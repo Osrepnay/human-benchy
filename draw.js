@@ -6,7 +6,7 @@ let layers;
 let layerIdx = 0;
 let numLayers;
 let totalScale;
-let cheatmode = true;
+let cheatmode = false;
 
 export function initDraw(num, l) {
     numLayers = num;
