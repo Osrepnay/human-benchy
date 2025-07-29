@@ -38,6 +38,27 @@ html, body {
     font-weight: bold;
 }
 
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+#filename-container {
+    display: inline-block;
+}
+
+#filename {
+    margin: 0em 0.5em;
+}
+
+.spin {
+    animation: spin 300ms infinite linear;
+}
+
 #game-screen {
     display: flex;
     height: 100%;
@@ -175,10 +196,15 @@ input[type="file"] {
                 <input id="use-benchy" name="use-benchy" type="checkbox" checked>
                 <label for="use-benchy">Use Benchy (~10MB download)</label>
             </div>
-            <label for="stl-picker" id="stl-picker-label" class="disabled-picker">
-                Choose file
-            </label>
-            <input id="stl-picker" name="stl-picker" type="file" accept=".stl" disabled>
+            <div>
+                <label for="stl-picker" id="stl-picker-label" class="disabled-picker">
+                    Choose file
+                </label>
+                <input id="stl-picker" name="stl-picker" type="file" accept=".stl" disabled>
+                <div id="filename-container">
+                    <p id="filename"></p>
+                </div>
+            </div>
             <button id="start-button">Go!</button>
             <p id="failed">
             </p>
