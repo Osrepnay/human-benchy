@@ -57,6 +57,11 @@ ctx.lineCap = "round";
 ctx.strokeStyle = "red";
 ctx.fillStyle = "red";
 
+const hoverCanvas = document.getElementById("hover-canvas");
+const hoverCtx = hoverCanvas.getContext("2d");
+hoverCtx.strokeStyle = "red";
+hoverCtx.fillStyle = "red";
+
 const brushSizeInput = document.getElementById("brush-size");
 const updateBrushWidth = () => {
     // flip it
@@ -127,6 +132,7 @@ canvas.addEventListener("pointermove", (e) => {
             if (!lastPoint) {
                 lastPoint = point;
             }
+            console.log(lastPoint, point);
             ctx.lineWidth = brushWidth;
             ctx.moveTo(lastPoint.x, lastPoint.y);
             ctx.beginPath();
@@ -156,6 +162,16 @@ canvas.addEventListener("pointerdown", (e) => {
         ctx.fill();
     }
 });
+
+// bubbles
+document.getElementById("canvas-wrapper").addEventListener("pointermove", (e) => {
+    hoverCtx.clearRect(0, 0, layerCanvas.width, layerCanvas.height);
+    if (tool === "brush") {
+        hoverCtx.beginPath();
+        hoverCtx.arc(transformX(e.clientX), transformY(e.clientY), brushWidth / 2, 0, 2 * Math.PI);
+        hoverCtx.fill();
+    }
+}, true);
 
 function mkDataIdx(data, x, y) {
     // red channel
