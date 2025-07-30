@@ -179,6 +179,13 @@ input[type="file"] {
     margin: 0.5em;
     font-size: 12pt;
 }
+
+#info-display {
+    position: absolute;
+    right: 1em;
+    top: 0.5em;
+    text-align: right;
+}
     </style>
     <body>
         <div id="picker-screen">
@@ -226,6 +233,10 @@ input[type="file"] {
                 <button id="fill">Fill (F)</button>
                 <button id="reset-layer">Reset Layer</button>
                 <button id="next-layer">Next Layer (Enter)</button>
+            </div>
+            <div id="info-display">
+                <p id="time-counter"></p>
+                <p id="layer-counter"></p>
             </div>
         </div>
         <div id="display-screen" style="display: none;">

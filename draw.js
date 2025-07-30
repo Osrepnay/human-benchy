@@ -7,6 +7,25 @@ let layerIdx = 0;
 let numLayers;
 let totalScale;
 let cheatmode = false;
+let startTime; 
+
+const timeCounter = document.getElementById("time-counter");
+const layerCounter = document.getElementById("layer-counter");
+function updateInfoDisplay() {
+    const ms = Date.now() - startTime;
+    const secs = Math.floor(ms / 1000);
+    const decimalPart = ("" + ms % 1000).padEnd(3, "0");
+    timeCounter.innerHTML = secs + "." + decimalPart;
+
+    layerCounter.innerHTML = "Layer " + (layerIdx + 1) + "/" + numLayers;
+}
+
+function update() {
+    updateInfoDisplay();
+    window.requestAnimationFrame(update);
+}
+
+window.requestAnimationFrame(update);
 
 export function initDraw(num, l) {
     numLayers = num;
@@ -24,6 +43,8 @@ export function initDraw(num, l) {
     if (cheatmode) {
         drawLayerCheat(layerIdx);
     }
+
+    startTime = Date.now();
 }
 
 const gameScreen = document.getElementById("game-screen");
