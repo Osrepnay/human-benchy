@@ -18,3 +18,11 @@ pub struct Point2d {
 pub struct Triangle {
     pub pts: [Point3d; 3],
 }
+
+#[wasm_bindgen]
+#[derive(Clone, Copy, Debug)]
+pub struct Transform {
+    pub scale: f64,
+    pub x_offset: f64,
+    pub y_offset: f64,
+}

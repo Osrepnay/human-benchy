@@ -2,16 +2,31 @@ use wasm_bindgen::prelude::wasm_bindgen;
 
 use crate::{
     parse::stl,
-    slice::{Layer, slice},
-    types::Point2d,
+    slice::{Layer, slice, xy_transform},
+    types::{Point2d, Transform, Triangle},
 };
 
-// toss the error messages
+// toss error messages
 #[wasm_bindgen]
-pub fn buf_to_layers(num_layers: usize, buffer: &[u8]) -> Option<*const Vec<Layer>> {
+pub fn parse_stl(buffer: &[u8]) -> Option<*const Vec<Triangle>> {
     let (_, tris) = stl(buffer).ok()?;
-    let layers = slice(&tris, num_layers);
-    Some(Box::into_raw(Box::new(layers)))
+    Some(Box::into_raw(Box::new(tris)))
+}
+
+#[wasm_bindgen]
+pub fn mk_transform(tris_raw: *const Vec<Triangle>) -> Transform {
+    let tris = unsafe { &*tris_raw };
+    xy_transform(tris)
+}
+
+#[wasm_bindgen]
+pub unsafe fn slice_triangles(
+    num_layers: usize,
+    tris_raw: *const Vec<Triangle>,
+) -> *const Vec<Layer> {
+    let tris = unsafe { &*tris_raw };
+    let layers = slice(tris, num_layers);
+    Box::into_raw(Box::new(layers))
 }
 
 #[wasm_bindgen]

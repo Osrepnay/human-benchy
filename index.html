@@ -220,6 +220,12 @@ input[type="file"] {
 #layer-counter {
     margin: 0.2em;
 }
+
+#display-screen {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
     </style>
     <body>
         <div id="picker-screen">
@@ -273,7 +279,7 @@ input[type="file"] {
                 <div id="brush-size-container">
                     <label for="brush-size">Brush Size</label>
                     <br>
-                    <input name="brush-size" id="brush-size" type="range" min="10" max="50" value="30">
+                    <input name="brush-size" id="brush-size" type="range" min="10" max="50" value="20">
                 </div>
                 <button id="brush">Brush (B)</button>
                 <button id="fill">Fill (F)</button>
@@ -286,7 +292,11 @@ input[type="file"] {
             </div>
         </div>
         <div id="display-screen" style="display: none;">
-            <canvas id="renderer" width="500" height="500"></canvas>
+            <h1>You Won?</h1>
+            <div id="renderers">
+                <canvas id="renderer" width="500" height="500"></canvas>
+                <canvas id="true-renderer" width="500" height="500"></canvas>
+            </div>
         </div>
         <script src="dist/index.js" type="module"></script>
     </body>

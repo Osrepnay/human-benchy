@@ -11,9 +11,9 @@ const useBenchy = document.getElementById("use-benchy");
 
 let numLayers;
 
-function startGame(layers) {
+function startGame(layers, transform, fileBuf) {
     pickerScreen.style.display = "none";
-    initDraw(numLayers, layers);
+    initDraw(numLayers, layers, transform, fileBuf);
 }
 
 function updatePickerDisabledState() {
@@ -62,9 +62,11 @@ function slice(fileArr) {
         fail("Input valid number of layers");
     }
     try {
-        const layers = bs.buf_to_layers(numLayers, fileArr);
-        if (layers) {
-            return layers;
+        const tris = bs.parse_stl(fileArr);
+        if (tris) {
+            const layers = bs.slice_triangles(numLayers, tris);
+            const transform = bs.mk_transform(tris);
+            return [layers, transform];
         }
     } catch (error) {
     }
@@ -72,7 +74,8 @@ function slice(fileArr) {
     return null;
 }
 
-let layers;
+let sliceResult;
+let fileBuf;
 
 stlPicker.addEventListener("change", () => {
     clearFail();
@@ -83,9 +86,10 @@ stlPicker.addEventListener("change", () => {
         const fileReader = new FileReader();
         fileReader.readAsArrayBuffer(stlPicker.files[0]);
         fileReader.addEventListener("loadend", () => {
+            fileBuf = fileReader.result;
             const fileArr = new Uint8Array(fileReader.result);
-            layers = slice(fileArr);
-            if (layers) {
+            sliceResult = slice(fileArr);
+            if (sliceResult) {
                 startButton.disabled = false;
             }
             filenameDisplay.classList.remove("spin");
@@ -104,19 +108,23 @@ numLayersSelector.addEventListener("change", updateNumLayers);
 
 document.getElementById("option-form").addEventListener("submit", async () => {
     clearFail();
+    let fileArr;
     if (useBenchy.checked) {
         const resp = await fetch("dist/3DBenchy.stl");
         if (!resp.ok) {
             fail("Couldn't download Benchy");
         } else {
-            const fileArr = await resp.bytes();
-            layers = slice(fileArr);
+            fileArr = await resp.bytes();
+            fileBuf = fileArr.buffer;
+            sliceResult = slice(fileArr);
         }
     }
-    if (!layers) {
+    if (!sliceResult) {
         fail("No valid file provided");
     } else {
-        startGame(layers);
+        let [layers, transform] = sliceResult;
+        console.log(transform.x_offset, transform.y_offset, transform.scale);
+        startGame(layers, transform, fileBuf);
     }
 });
 

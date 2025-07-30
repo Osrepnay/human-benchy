@@ -3,10 +3,12 @@ import * as THREE from "three";
 import { initDisplay } from "./display.js";
 
 let layers;
+let transform;
+let fileBuf;
 let layerIdx = 0;
 let numLayers;
 let totalScale;
-let cheatmode = false;
+let cheatmode = true;
 let startTime; 
 
 const timeCounter = document.getElementById("time-counter");
@@ -27,9 +29,11 @@ function update() {
 
 window.requestAnimationFrame(update);
 
-export function initDraw(num, l) {
+export function initDraw(num, l, t, f) {
     numLayers = num;
     layers = l;
+    transform = t;
+    fileBuf = f;
     const totalHeight = bs.total_height(layers);
     if (totalHeight > 1) {
         totalScale = 1 / totalHeight; 
@@ -132,7 +136,6 @@ canvas.addEventListener("pointermove", (e) => {
             if (!lastPoint) {
                 lastPoint = point;
             }
-            console.log(lastPoint, point);
             ctx.lineWidth = brushWidth;
             ctx.moveTo(lastPoint.x, lastPoint.y);
             ctx.beginPath();
@@ -149,7 +152,6 @@ canvas.addEventListener("pointermove", (e) => {
     }
 });
 canvas.addEventListener("pointerdown", (e) => {
-    console.log(transformX(e.clientX), transformY(e.clientY));
     if (tool === "fill") {
         floodfill(Math.round(transformX(e.clientX)), Math.round(transformY(e.clientY)));
     } else if (tool === "brush") {
@@ -530,7 +532,8 @@ document.getElementById("next-layer").addEventListener("click", () => {
     currHeight += height;
     if (layerIdx >= numLayers - 1) {
         gameScreen.style.display = "none";
-        initDisplay(allGeometries);
+        const center = new THREE.Vector3(0.5 * totalScale, 0.5 * totalScale, height * numLayers / 2);
+        initDisplay(center, allGeometries, transform, fileBuf);
     } else {
         drawLayer(++layerIdx);
         console.log("layer", layerIdx);

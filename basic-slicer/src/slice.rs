@@ -3,7 +3,7 @@ use std::{
     f64,
 };
 
-use crate::types::{Point2d, Point3d, Triangle};
+use crate::types::{Point2d, Point3d, Transform, Triangle};
 
 #[derive(Debug)]
 struct Line2d(Point2d, Point2d);
@@ -206,16 +206,12 @@ fn rdp(segment: &VecDeque<Point2d>) -> Vec<Point2d> {
         .collect()
 }
 
-// slow as a dog that can't walk too good because it's missing a leg or something like that.
-pub fn slice(triangles: &Vec<Triangle>, layers: usize) -> Vec<Layer> {
+pub fn xy_transform(triangles: &Vec<Triangle>) -> Transform {
     let mut x_min = f64::INFINITY;
     let mut x_max = f64::NEG_INFINITY;
 
     let mut y_min = f64::INFINITY;
     let mut y_max = f64::NEG_INFINITY;
-
-    let mut z_min = f64::INFINITY;
-    let mut z_max = f64::NEG_INFINITY;
 
     for tri in &*triangles {
         for point in tri.pts {
@@ -224,17 +220,55 @@ pub fn slice(triangles: &Vec<Triangle>, layers: usize) -> Vec<Layer> {
 
             y_min = f64::min(y_min, point.y);
             y_max = f64::max(y_max, point.y);
+        }
+    }
 
+    let x_range = x_max - x_min;
+    let y_range = y_max - y_min;
+
+    let scale;
+    // centre
+    let mut x_offset = -x_min;
+    let mut y_offset = -y_min;
+    if x_range > y_range {
+        scale = 1.0 / x_range;
+        x_offset *= scale;
+        y_offset *= scale;
+        y_offset += (1.0 - (y_range * scale)) / 2.0;
+    } else {
+        scale = 1.0 / y_range;
+        x_offset *= scale;
+        y_offset *= scale;
+        x_offset += (1.0 - (x_range * scale)) / 2.0;
+    }
+
+    return Transform {
+        scale,
+        x_offset,
+        y_offset,
+    };
+}
+
+fn apply_transform(trans: &Transform, point: &Point2d) -> Point2d {
+    Point2d {
+        x: point.x * trans.scale + trans.x_offset,
+        y: point.y * trans.scale + trans.y_offset,
+    }
+}
+
+// slow as a dog that can't walk too good because it's missing a leg or something like that.
+pub fn slice(triangles: &Vec<Triangle>, layers: usize) -> Vec<Layer> {
+    let mut z_min = f64::INFINITY;
+    let mut z_max = f64::NEG_INFINITY;
+
+    for tri in &*triangles {
+        for point in tri.pts {
             z_min = f64::min(z_min, point.z);
             z_max = f64::max(z_max, point.z);
         }
     }
 
-    let range = f64::max(x_max - x_min, y_max - y_min);
-    let norm_func = |point: Point2d| Point2d {
-        x: (point.x - x_min) / range,
-        y: (point.y - y_min) / range,
-    };
+    let transform = xy_transform(triangles);
 
     let layer_height = (z_max - z_min) / (layers as f64);
     let mut layers = Vec::new();
@@ -247,8 +281,8 @@ pub fn slice(triangles: &Vec<Triangle>, layers: usize) -> Vec<Layer> {
             if let Some(intersection) = intersect(tri, curr_z) {
                 had_intersection = true;
                 let mut new_seg = VecDeque::new();
-                new_seg.push_back(norm_func(intersection.0));
-                new_seg.push_back(norm_func(intersection.1));
+                new_seg.push_back(apply_transform(&transform, &intersection.0));
+                new_seg.push_back(apply_transform(&transform, &intersection.1));
                 segments.push(new_seg);
                 join_segments(&mut segments);
             }
@@ -260,7 +294,7 @@ pub fn slice(triangles: &Vec<Triangle>, layers: usize) -> Vec<Layer> {
             let final_segments = segments.iter().map(rdp).collect();
             layers.push(Layer {
                 segments: final_segments,
-                z_height: layer_height / range,
+                z_height: layer_height * transform.scale,
             });
             curr_z += layer_height;
         }
