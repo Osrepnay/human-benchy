@@ -30,6 +30,8 @@ html, body {
 
 #start-button {
     font-size: 15pt;
+    margin: auto;
+    display: block;
 }
 
 #failed {
@@ -152,6 +154,7 @@ input[type="file"] {
     font-weight: bold;
     cursor: pointer;
     padding: 1px 4px;
+    display: inline-block;
 }
 
 #stl-picker-label:hover {
@@ -168,6 +171,12 @@ input[type="file"] {
     border-color: grey !important;
     color: grey !important;
     cursor: default !important;
+}
+
+#options {
+    display: flex;
+    flex-direction: column;
+    row-gap: 0.5em;
 }
 
 #brush-size-container {
@@ -215,20 +224,31 @@ input[type="file"] {
                 <br>
                 Well, this website is for you!
             </p>
-            <div>
-                <input id="use-benchy" name="use-benchy" type="checkbox" checked>
-                <label for="use-benchy">Use Benchy (~10MB download)</label>
-            </div>
-            <div>
-                <label for="stl-picker" id="stl-picker-label" class="disabled-picker">
-                    Choose file
-                </label>
-                <input id="stl-picker" name="stl-picker" type="file" accept=".stl" disabled>
-                <div id="filename-container">
-                    <p id="filename"></p>
+
+            <form id="option-form" action="javascript:void(0)">
+                <div id="options">
+                    <div>
+                        <label for="stl-picker" id="stl-picker-label" class="disabled-picker">
+                            Choose file
+                        </label>
+                        <input id="stl-picker" name="stl-picker" type="file" accept=".stl" disabled>
+                        <div id="filename-container">
+                            <p id="filename"></p>
+                        </div>
+                    </div>
+                    <div>
+                        <input id="use-benchy" name="use-benchy" type="checkbox" checked>
+                        <label for="use-benchy">Use Benchy (~10MB download)</label>
+                    </div>
+                    <div>
+                        <label for="num-layers">Number of layers</label>
+                        <input id="num-layers" name="num-layers" type="number" min="1" value="8" required>
+                    </div>
                 </div>
-            </div>
-            <button id="start-button">Go!</button>
+                <br>
+
+                <button id="start-button">Go!</button>
+            </form>
             <p id="failed">
             </p>
         </div>

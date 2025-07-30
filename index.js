@@ -5,10 +5,11 @@ const pickerScreen = document.getElementById("picker-screen");
 const stlPicker = document.getElementById("stl-picker");
 const stlPickerLabel = document.getElementById("stl-picker-label");
 const filenameDisplay = document.getElementById("filename");
+const numLayersSelector = document.getElementById("num-layers");
 const startButton = document.getElementById("start-button");
 const useBenchy = document.getElementById("use-benchy");
 
-let numLayers = 10;
+let numLayers;
 
 function startGame(layers) {
     pickerScreen.style.display = "none";
@@ -45,8 +46,21 @@ useBenchy.addEventListener("change", () => {
     updateStartDisabledState();
 });
 
+function fail(msg) {
+    failed.style.display = "block";
+    failed.innerHTML = msg;
+}
+
+function clearFail() {
+    failed.style.display = "none";
+    failed.innerHTML = "";
+}
+
 function slice(fileArr) {
     clearFail();
+    if (!numLayers) {
+        fail("Input valid number of layers");
+    }
     try {
         const layers = bs.buf_to_layers(numLayers, fileArr);
         if (layers) {
@@ -80,17 +94,15 @@ stlPicker.addEventListener("change", () => {
     }
 });
 
-function fail(msg) {
-    failed.style.display = "block";
-    failed.innerHTML = msg;
+function updateNumLayers() {
+    numLayers = numLayersSelector.value;
 }
 
-function clearFail() {
-    failed.style.display = "none";
-    failed.innerHTML = "";
-}
+updateNumLayers();
 
-startButton.addEventListener("click", async () => {
+numLayersSelector.addEventListener("change", updateNumLayers);
+
+document.getElementById("option-form").addEventListener("submit", async () => {
     clearFail();
     if (useBenchy.checked) {
         const resp = await fetch("dist/3DBenchy.stl");
