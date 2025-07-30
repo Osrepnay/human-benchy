@@ -86,7 +86,7 @@ const container = document.getElementById("canvas-container");
 function resizeCanvas() {
     let availableWidth = container.parentElement.clientWidth;
     for (const child of container.parentElement.children) {
-        if (child.id !== "canvas-container") {
+        if (child.id !== "canvas-container" && child.id !== "info-display") {
             availableWidth -= child.offsetWidth;
         }
     }
