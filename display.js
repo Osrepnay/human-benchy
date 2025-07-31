@@ -11,11 +11,12 @@ const displayScreen = document.getElementById("display-screen");
 const renderCanvas = document.getElementById("renderer");
 const trueRenderCanvas = document.getElementById("true-renderer");
 
-export function initDisplay(center, geometries, transform, fileBuf) {
+export function initDisplay(center, totalScale, geometry, transform, fileBuf) {
     displayScreen.style.display = "flex";
     let renderer = new THREE.WebGLRenderer({
         canvas: renderCanvas
     });
+
     let light1 = new THREE.PointLight(0xffffff, 20);
     light1.position.set(2, 2, 2);
     scene.add(light1);
@@ -23,12 +24,12 @@ export function initDisplay(center, geometries, transform, fileBuf) {
     light2.position.set(-2, -2, 1.1);
     scene.add(light2);
     scene.add(new THREE.AmbientLight(0xffffff, 0.5));
-    for (const geometry of geometries) {
-        const material = new THREE.MeshPhongMaterial({ color: 0xff0000 });
-        material.side = THREE.DoubleSide;
-        const mesh = new THREE.Mesh(geometry, material);
-        scene.add(mesh);
-    }
+
+    const material = new THREE.MeshPhongMaterial({ color: 0xff0000 });
+    material.side = THREE.DoubleSide;
+    const mesh = new THREE.Mesh(geometry, material);
+    scene.add(mesh);
+
     const centerDist = 1.5;
     const coordDelta = centerDist / Math.sqrt(3);
     camera.position.x = center.x + coordDelta;
@@ -46,18 +47,20 @@ export function initDisplay(center, geometries, transform, fileBuf) {
     const loader = new STLLoader();
     const original = loader.parse(fileBuf);
     original.scale(transform.scale, transform.scale, transform.scale);
-    original.translate(transform.x_offset, transform.y_offset, 0);
+    original.translate(transform.x_offset, transform.y_offset, transform.z_offset);
+    original.scale(totalScale, totalScale, totalScale);
 
     let trueRenderer = new THREE.WebGLRenderer({
         canvas: trueRenderCanvas
     });
+
     trueScene.add(light1.clone());
     trueScene.add(light2.clone());
+
     trueScene.add(new THREE.AmbientLight(0xffffff, 0.5));
-    const material = new THREE.MeshPhongMaterial({ color: 0xff0000 });
-    material.side = THREE.DoubleSide;
-    const mesh = new THREE.Mesh(original, material);
-    trueScene.add(mesh);
+    const trueMesh = new THREE.Mesh(original, material);
+    trueScene.add(trueMesh);
+
     let trueControls = new OrbitControls(camera, trueRenderer.domElement);
     trueControls.target = center;
     trueControls.update();

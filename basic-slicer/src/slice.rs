@@ -147,8 +147,6 @@ fn join_segments(segments: &mut Vec<VecDeque<Point2d>>) {
     }
 }
 
-const RDP_EPSILON: f64 = 1e-4;
-
 // https://stackoverflow.com/a/1501725/9509713
 // i dont know linalg and i dont trust myself to write a version
 // that handles edge cases correctly
@@ -167,7 +165,7 @@ fn point_line_dist(point: Point2d, line_start: Point2d, line_end: Point2d) -> f6
 }
 
 // ramer douglas peucker
-fn rdp(segment: &VecDeque<Point2d>) -> Vec<Point2d> {
+pub fn rdp(segment: &[Point2d], tolerance: f64) -> Vec<Point2d> {
     let mut keep_idxs: HashSet<usize> = HashSet::new();
     keep_idxs.insert(0);
     keep_idxs.insert(segment.len() - 1);
@@ -182,7 +180,7 @@ fn rdp(segment: &VecDeque<Point2d>) -> Vec<Point2d> {
             keep_idxs.insert(end);
             continue;
         }
-        let mut max_dist = RDP_EPSILON;
+        let mut max_dist = tolerance;
         let mut max_dist_idx = 0;
         for i in (start + 1)..end {
             let dist = point_line_dist(segment[i], segment[start], segment[end]);
@@ -191,7 +189,7 @@ fn rdp(segment: &VecDeque<Point2d>) -> Vec<Point2d> {
                 max_dist_idx = i;
             }
         }
-        if max_dist != RDP_EPSILON {
+        if max_dist != tolerance {
             keep_idxs.insert(max_dist_idx);
             pair_stack.push((start, max_dist_idx));
             pair_stack.push((max_dist_idx, end));
@@ -213,6 +211,8 @@ pub fn xy_transform(triangles: &Vec<Triangle>) -> Transform {
     let mut y_min = f64::INFINITY;
     let mut y_max = f64::NEG_INFINITY;
 
+    let mut z_min = f64::INFINITY;
+
     for tri in &*triangles {
         for point in tri.pts {
             x_min = f64::min(x_min, point.x);
@@ -220,6 +220,8 @@ pub fn xy_transform(triangles: &Vec<Triangle>) -> Transform {
 
             y_min = f64::min(y_min, point.y);
             y_max = f64::max(y_max, point.y);
+
+            z_min = f64::min(z_min, point.z);
         }
     }
 
@@ -246,6 +248,7 @@ pub fn xy_transform(triangles: &Vec<Triangle>) -> Transform {
         scale,
         x_offset,
         y_offset,
+        z_offset: -z_min * scale,
     };
 }
 
@@ -267,7 +270,6 @@ pub fn slice(triangles: &Vec<Triangle>, layers: usize) -> Vec<Layer> {
             z_max = f64::max(z_max, point.z);
         }
     }
-
     let transform = xy_transform(triangles);
 
     let layer_height = (z_max - z_min) / (layers as f64);
@@ -291,7 +293,10 @@ pub fn slice(triangles: &Vec<Triangle>, layers: usize) -> Vec<Layer> {
         if !had_intersection {
             break;
         } else {
-            let final_segments = segments.iter().map(rdp).collect();
+            let final_segments = segments
+                .iter_mut()
+                .map(|v| rdp(v.make_contiguous(), 1e-4))
+                .collect();
             layers.push(Layer {
                 segments: final_segments,
                 z_height: layer_height * transform.scale,

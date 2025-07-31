@@ -1,6 +1,7 @@
 import * as bs from "basic-slicer";
 import * as THREE from "three";
 import { initDisplay } from "./display.js";
+import * as BufferGeometryUtils from "three/addons/utils/BufferGeometryUtils.js";
 
 let layers;
 let transform;
@@ -371,6 +372,18 @@ function squareContours(imageData, sqTester, topLeftX, topLeftY) {
     return contours.map((c) => c.map((vec) => new THREE.Vector2(topLeftX + vec.x / 2, topLeftY + vec.y / 2)));
 }
 
+function posMod(x, m) {
+    return (x % m + m) % m;
+}
+
+// wrapper for rdp_js that does THREE.Vector2/Point2d conversions
+function simplifyPoints(points) {
+    const point2dPoints = points.map((p) => new bs.Point2d(p.x, p.y));
+    return bs.rdp_js(point2dPoints, 0.005).map((p) => new THREE.Vector2(p.x, p.y));
+}
+
+const segs = 300;
+
 function polygonate(imageData) {
     const orthoDeltas = [
         { x: 1, y: 0 },
@@ -501,11 +514,18 @@ function polygonate(imageData) {
         }
         const boundaryLoop = loops[maxBoundIdx];
         loops.splice(maxBoundIdx, 1);
-        const holeLoops = loops.map((h) => new THREE.Path(h));
+        const holeLoops = loops
+            .map(simplifyPoints)
+            .filter((ps) => ps.length > 2) // rdp simplifies polygons to a line if they're too small
+            // TODO SplineCurve rounds corners...
+            // .map((ps) => new THREE.SplineCurve(ps));
+            .map((ps) => new THREE.Path(ps));
 
         console.assert(boundaryLoop && holeLoops.every((h) => h), "failed to loop shape");
 
-        let shape = new THREE.Shape(boundaryLoop);
+        // horrible hack
+        // let shape = new THREE.Shape(new THREE.SplineCurve(simplifyPoints(boundaryLoop)).getPoints(segs));
+        let shape = new THREE.Shape(simplifyPoints(boundaryLoop));
         shape.holes = holeLoops;
         if (shape) shapes.push(shape);
     }
@@ -524,16 +544,23 @@ document.getElementById("next-layer").addEventListener("click", () => {
     for (const shape of shapes) {
         const geo = new THREE.ExtrudeGeometry([shape], {
                 depth: height,
-                bevelEnabled: false
+                bevelEnabled: false,
+                curveSegments: segs,
             })
             .translate(0, 0, currHeight);
         allGeometries.push(geo);
     }
     currHeight += height;
     if (layerIdx >= numLayers - 1) {
+        bs.release_layers(layers);
+
         gameScreen.style.display = "none";
         const center = new THREE.Vector3(0.5 * totalScale, 0.5 * totalScale, height * numLayers / 2);
-        initDisplay(center, allGeometries, transform, fileBuf);
+        let finalGeometry = BufferGeometryUtils.mergeVertices(
+            BufferGeometryUtils.mergeGeometries(allGeometries, false)
+        );
+        finalGeometry.computeVertexNormals();
+        initDisplay(center, totalScale, finalGeometry, transform, fileBuf);
     } else {
         drawLayer(++layerIdx);
         console.log("layer", layerIdx);

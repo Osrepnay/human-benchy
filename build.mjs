@@ -5,6 +5,7 @@ await esbuild.build({
     entryPoints: ["index.js"],
     bundle: true,
     minify: true,
+    sourcemap: true,
     format: "esm",
     outdir: "dist",
     plugins: [wasmLoader()],

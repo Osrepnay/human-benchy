@@ -2,7 +2,7 @@ use wasm_bindgen::prelude::wasm_bindgen;
 
 use crate::{
     parse::stl,
-    slice::{Layer, slice, xy_transform},
+    slice::{Layer, rdp, slice, xy_transform},
     types::{Point2d, Transform, Triangle},
 };
 
@@ -51,6 +51,11 @@ pub unsafe fn total_height(layers: *const Vec<Layer>) -> f64 {
 #[wasm_bindgen]
 pub unsafe fn get_layer_height(layer_idx: usize, layers: *const Vec<Layer>) -> f64 {
     unsafe { (*layers)[layer_idx].z_height }
+}
+
+#[wasm_bindgen]
+pub fn rdp_js(points: Vec<Point2d>, tolerance: f64) -> Vec<Point2d> {
+    rdp(&points, tolerance)
 }
 
 #[wasm_bindgen]
