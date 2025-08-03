@@ -7,7 +7,7 @@ await esbuild.build({
     minify: true,
     sourcemap: true,
     format: "esm",
-    outdir: "dist",
+    outdir: "site/dist",
     plugins: [wasmLoader()],
     logLevel: "info",
 });
