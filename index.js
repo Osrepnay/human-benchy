@@ -49,6 +49,7 @@ useBenchy.addEventListener("change", () => {
 function fail(msg) {
     failed.style.display = "block";
     failed.innerHTML = msg;
+    startButton.innerHTML = "Go!";
 }
 
 function clearFail() {
@@ -108,6 +109,7 @@ numLayersSelector.addEventListener("change", updateNumLayers);
 
 document.getElementById("option-form").addEventListener("submit", async () => {
     clearFail();
+    startButton.innerHTML = "Slicing...";
     let fileArr;
     if (useBenchy.checked) {
         const resp = await fetch("dist/3DBenchy.stl");

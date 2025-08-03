@@ -92,6 +92,10 @@ function transformY(clientY) {
 // this is awful but it's the best way i could find
 const container = document.getElementById("canvas-container");
 function resizeCanvas() {
+    if (window.matchMedia("orientation: portrait")) {
+        return;
+    }
+
     let availableWidth = container.parentElement.clientWidth;
     for (const child of container.parentElement.children) {
         if (child.id !== "canvas-container" && child.id !== "info-display") {
@@ -109,8 +113,19 @@ function resizeCanvas() {
 
 window.addEventListener("resize", resizeCanvas);
 
-let tool = "brush";
-["brush", "fill"].forEach((t) => document.getElementById(t).addEventListener("click", () => tool = t));
+let tool;
+
+function assignTool(newTool) {
+    if (tool) {
+        document.getElementById(tool).classList.remove("active-tool");
+    }
+    document.getElementById(newTool).classList.add("active-tool");
+    tool = newTool;
+}
+
+assignTool("brush");
+
+["brush", "fill"].forEach((t) => document.getElementById(t).addEventListener("click", () => assignTool(t)));
 
 document.getElementById("reset-layer").addEventListener("click", () => {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -118,9 +133,9 @@ document.getElementById("reset-layer").addEventListener("click", () => {
 
 document.addEventListener("keydown", (e) => {
     if (e.key === "b") {
-        tool = "brush";
+        assignTool("brush");
     } else if (e.key === "f") {
-        tool = "fill";
+        assignTool("fill");
     } else if (e.key === "Enter" && gameScreen.style.display !== "none") {
         document.getElementById("next-layer").click();
     }

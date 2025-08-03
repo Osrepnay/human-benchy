@@ -65,6 +65,12 @@ html, body {
     justify-content: center;
 }
 
+@media (orientation: portrait) {
+    #game-screen {
+        flex-direction: column;
+    }
+}
+
 #canvas-container {
     aspect-ratio: 1 / 1;
     margin: auto 0px;
@@ -93,6 +99,7 @@ html, body {
     width: 100%;
     height: 100%;
     display: block;
+    touch-action: none;
 }
 
 #layer-canvas {
@@ -193,6 +200,11 @@ input[type="file"] {
     flex: 1 1 0;
     margin: 0.5em;
     font-size: 12pt;
+}
+
+.active-tool {
+     color: #0b9e9e;
+     border-color: #0b9e9e;
 }
 
 #info-display {
