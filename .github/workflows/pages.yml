@@ -39,8 +39,8 @@ jobs:
           targets: wasm32-unknown-unknown
       - name: Install wasm-pack
         run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
-      - name: Install apt deps
-        run: sudo apt-get -y install npm binaryen
+      - name: Install npm
+        uses: actions/setup-node@v4
       - name: Build site
         run: |
           npm install

@@ -2,7 +2,7 @@
 
 set -e
 
-mkdir site/dist
+mkdir -p site/dist
 cd basic-slicer
 wasm-pack build
 cd ..
