@@ -5,43 +5,45 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
     </heaD>
     <body>
-        <div id="picker-screen" class="floatbox">
-            <h1>Human Benchy</h1>
-            <p>
-                Here, you can draw a 3d model layer by layer like a 3d printer,
-                in case you've ever looked at your 3d printer and envied its life.
-                <br>
-                It doesn't have any worries. Regrets. Debts.
-                <br>
-                It just prints, prints, prints prints prints.
-            </p>
+        <div id="picker-screen">
+            <div class="floatbox">
+                <h1>Human Benchy</h1>
+                <p>
+                    Here, you can draw a 3d model layer by layer like a 3d printer,
+                    in case you've ever looked at your 3d printer and envied its life.
+                    <br>
+                    It doesn't have any worries. Regrets. Debts.
+                    <br>
+                    It just prints, prints, prints prints prints.
+                </p>
 
-            <form id="option-form" action="javascript:void(0)">
-                <div id="options">
-                    <div>
-                        <label for="stl-picker" id="stl-picker-label" class="disabled-picker">
-                            Choose file
-                        </label>
-                        <input id="stl-picker" name="stl-picker" type="file" accept=".stl" disabled>
-                        <div id="filename-container">
-                            <p id="filename"></p>
+                <form id="option-form" action="javascript:void(0)">
+                    <div id="options">
+                        <div>
+                            <label for="stl-picker" id="stl-picker-label" class="disabled-picker">
+                                Choose file
+                            </label>
+                            <input id="stl-picker" name="stl-picker" type="file" accept=".stl" disabled>
+                            <div id="filename-container">
+                                <p id="filename"></p>
+                            </div>
+                        </div>
+                        <div>
+                            <input id="use-benchy" name="use-benchy" type="checkbox" checked>
+                            <label for="use-benchy">Use Benchy (~10MB download)</label>
+                        </div>
+                        <div>
+                            <label for="num-layers">Number of layers</label>
+                            <input id="num-layers" name="num-layers" type="number" min="1" value="10" required>
                         </div>
                     </div>
-                    <div>
-                        <input id="use-benchy" name="use-benchy" type="checkbox" checked>
-                        <label for="use-benchy">Use Benchy (~10MB download)</label>
-                    </div>
-                    <div>
-                        <label for="num-layers">Number of layers</label>
-                        <input id="num-layers" name="num-layers" type="number" min="1" value="10" required>
-                    </div>
-                </div>
-                <br>
+                    <br>
 
-                <button id="start-button">Go!</button>
-            </form>
-            <p id="failed">
-            </p>
+                    <button id="start-button">Go!</button>
+                </form>
+                <p id="failed">
+                </p>
+            </div>
         </div>
         <div id="game-screen" style="display: none;">
             <div id="canvas-container">
