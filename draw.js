@@ -534,6 +534,9 @@ function polygonate(imageData) {
             // TODO SplineCurve rounds corners...
             // .map((ps) => new THREE.SplineCurve(ps));
             .map((ps) => new THREE.Path(ps));
+        if (holeLoops.length < loops.length) {
+            console.warn("discarded", loops.length - holeLoops.length, "inner loops");
+        }
 
         console.assert(boundaryLoop && holeLoops.every((h) => h), "failed to loop shape");
 
@@ -541,7 +544,12 @@ function polygonate(imageData) {
         // let shape = new THREE.Shape(new THREE.SplineCurve(simplifyPoints(boundaryLoop)).getPoints(segs));
         let shape = new THREE.Shape(simplifyPoints(boundaryLoop));
         shape.holes = holeLoops;
-        if (shape) shapes.push(shape);
+        if (shape) {
+            shapes.push(shape);
+            console.log(boundaryLoop, simplifyPoints(boundaryLoop));
+        } else {
+            console.warn("could not shape shape");
+        }
     }
     return shapes;
 }

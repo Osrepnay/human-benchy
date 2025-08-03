@@ -153,7 +153,7 @@ fn join_segments(segments: &mut Vec<VecDeque<Point2d>>) {
 fn point_line_dist(point: Point2d, line_start: Point2d, line_end: Point2d) -> f64 {
     let length_squared = (line_start.x - line_end.x).powi(2) + (line_start.y - line_end.y).powi(2);
     if length_squared == 0.0 {
-        return (line_start.x - point.x).powi(2) + (line_start.y - point.y).powi(2);
+        return ((line_start.x - point.x).powi(2) + (line_start.y - point.y).powi(2)).sqrt();
     }
     let t = ((point.x - line_start.x) * (line_end.x - line_start.x)
         + (point.y - line_start.y) * (line_end.y - line_start.y))
@@ -163,6 +163,14 @@ fn point_line_dist(point: Point2d, line_start: Point2d, line_end: Point2d) -> f6
         + (point.y - (line_start.y + clamped * (line_end.y - line_start.y))).powi(2))
     .sqrt()
 }
+
+/*
+#[wasm_bindgen]
+extern "C" {
+    #[wasm_bindgen(js_namespace = console)]
+    fn log(s: &str);
+}
+*/
 
 // ramer douglas peucker
 pub fn rdp(segment: &[Point2d], tolerance: f64) -> Vec<Point2d> {
