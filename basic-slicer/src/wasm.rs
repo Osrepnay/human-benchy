@@ -31,7 +31,7 @@ pub unsafe fn slice_triangles(
 
 #[wasm_bindgen]
 pub unsafe fn layer_segments(layer_idx: usize, layers: *const Vec<Layer>) -> usize {
-    unsafe { (*layers)[layer_idx].segments.len() }
+    unsafe { layers.as_ref().unwrap()[layer_idx].segments.len() }
 }
 
 #[wasm_bindgen]
@@ -40,7 +40,7 @@ pub unsafe fn get_segment(
     segment_idx: usize,
     layers: *const Vec<Layer>,
 ) -> Vec<Point2d> {
-    unsafe { (*layers)[layer_idx].segments[segment_idx].clone() }
+    unsafe { layers.as_ref().unwrap()[layer_idx].segments[segment_idx].clone() }
 }
 
 #[wasm_bindgen]
@@ -50,7 +50,7 @@ pub unsafe fn total_height(layers: *const Vec<Layer>) -> f64 {
 
 #[wasm_bindgen]
 pub unsafe fn get_layer_height(layer_idx: usize, layers: *const Vec<Layer>) -> f64 {
-    unsafe { (*layers)[layer_idx].z_height }
+    unsafe { layers.as_ref().unwrap()[layer_idx].z_height }
 }
 
 #[wasm_bindgen]

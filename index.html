@@ -1,232 +1,6 @@
 <!DOCTYPE html>
 <html>
-    <style>
-* {
-    box-sizing: border-box;
-}
-
-html, body {
-    padding: 0px;
-    margin: 0px;
-    height: 100%;
-    font-family: sans-serif;
-}
-
-#picker-screen {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    max-width: min(100%, 45em);
-    margin: auto;
-}
-
-#picker-screen p {
-    text-align: center;
-}
-
-#picker-screen > * {
-    margin: 0.6em;
-}
-
-#start-button {
-    font-size: 15pt;
-    margin: auto;
-    display: block;
-}
-
-#failed {
-    display: none;
-    color: red;
-    font-weight: bold;
-}
-
-@keyframes spin {
-    from {
-        transform: rotate(0deg);
-    }
-    to {
-        transform: rotate(360deg);
-    }
-}
-
-#filename-container {
-    display: inline-block;
-}
-
-#filename {
-    margin: 0em 0.5em;
-}
-
-.spin {
-    animation: spin 300ms infinite linear;
-}
-
-#game-screen {
-    display: flex;
-    height: 100%;
-    align-items: flex-start;
-    justify-content: center;
-}
-
-#canvas-container {
-    aspect-ratio: 1 / 1;
-    margin: auto 0px;
-}
-
-.container-landscape {
-    height: 100%;
-}
-
-.container-portrait {
-    flex: 1;
-}
-
-#canvas-wrapper {
-    margin: 1em;
-    aspect-ratio: 1 / 1;
-    position: relative;
-
-    border: 0.5em solid black;
-    width: calc(100% - 2em);
-    height: calc(100% - 2em);
-}
-
-.canvas {
-    object-fit: contain;
-    width: 100%;
-    height: 100%;
-    display: block;
-}
-
-#layer-canvas {
-    position: absolute;
-    left: 0px;
-    top: 0px;
-    z-index: -1;
-}
-
-#hover-canvas {
-    position: absolute;
-    left: 0px;
-    top: 0px;
-    z-index: 999;
-    pointer-events: none;
-    opacity: 0.4;
-}
-
-#canvas {
-    opacity: 0.7;
-    image-rendering: pixelated;
-}
-
-#tools {
-    display: inline flex;
-    flex-direction: column;
-    align-items: flex-start;
-    justify-content: center;
-    margin: auto 0px;
-    font-size: 12pt;
-}
-
-button {
-    background: #ffffff00;
-    border: 0.3em solid black; 
-    font-weight: bold;
-    cursor: pointer;
-    padding: 1px 4px;
-}
-
-button:hover {
-    border-color: #018484;
-    color: #018484;
-}
-
-button:active {
-    border-color: #0b9e9e;
-    color: #0b9e9e;
-}
-
-button:disabled {
-    border-color: grey !important;
-    color: grey !important;
-    cursor: default !important;
-}
-
-input[type="file"] {
-    display: none;
-}
-
-/* same as button */
-#stl-picker-label {
-    background: #ffffff00;
-    border: 0.3em solid black; 
-    font-weight: bold;
-    cursor: pointer;
-    padding: 1px 4px;
-    display: inline-block;
-}
-
-#stl-picker-label:hover {
-    border-color: #018484;
-    color: #018484;
-}
-
-#stl-picker-label:active {
-    border-color: #0b9e9e;
-    color: #0b9e9e;
-}
-
-.disabled-picker {
-    border-color: grey !important;
-    color: grey !important;
-    cursor: default !important;
-}
-
-#options {
-    display: flex;
-    flex-direction: column;
-    row-gap: 0.5em;
-}
-
-#brush-size-container {
-    margin: 0.5em;
-}
-
-#tools button {
-    flex: 1 1 0;
-    margin: 0.5em;
-    font-size: 12pt;
-}
-
-#info-display {
-    position: absolute;
-    right: 0px;
-    top: 0px;
-    text-align: right;
-    font-family: monospace;
-    font-size: 30pt;
-    opacity: 0.7;
-    background-color: #ffffffdd;
-    border: 0.1em solid black;
-    margin: 8px;
-    pointer-events: none;
-}
-
-#time-counter {
-    margin: 0.2em;
-    color: #990000;
-}
-
-#layer-counter {
-    margin: 0.2em;
-}
-
-#display-screen {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-}
-    </style>
+    <link rel="stylesheet" href="index.css">
     <body>
         <div id="picker-screen">
             <h1>Human Benchy</h1>
@@ -293,9 +67,18 @@ input[type="file"] {
         </div>
         <div id="display-screen" style="display: none;">
             <h1>You Won?</h1>
+            <p id="time-result" class="result"></p>
+            <h3 id="verdict" class="result"></h3>
             <div id="renderers">
-                <canvas id="renderer" width="500" height="500"></canvas>
-                <canvas id="true-renderer" width="500" height="500"></canvas>
+                <div class="render-container">
+                    <p>Your Model</p>
+                    <canvas class="renderer" id="renderer" width="500" height="500"></canvas>
+                    <button id="download">Download</button>
+                </div>
+                <div class="render-container">
+                    <p>Uploaded STL</p>
+                    <canvas class="renderer" id="true-renderer" width="500" height="500"></canvas>
+                </div>
             </div>
         </div>
         <script src="dist/index.js" type="module"></script>

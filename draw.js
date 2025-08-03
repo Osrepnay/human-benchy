@@ -9,7 +9,7 @@ let fileBuf;
 let layerIdx = 0;
 let numLayers;
 let totalScale;
-let cheatmode = true;
+let cheatmode = false;
 let startTime; 
 
 const timeCounter = document.getElementById("time-counter");
@@ -17,7 +17,7 @@ const layerCounter = document.getElementById("layer-counter");
 function updateInfoDisplay() {
     const ms = Date.now() - startTime;
     const secs = Math.floor(ms / 1000);
-    const decimalPart = ("" + ms % 1000).padEnd(3, "0");
+    const decimalPart = ("" + ms % 1000).padStart(3, "0");
     timeCounter.innerHTML = secs + "." + decimalPart;
 
     layerCounter.innerHTML = "Layer " + (layerIdx + 1) + "/" + numLayers;
@@ -27,8 +27,6 @@ function update() {
     updateInfoDisplay();
     window.requestAnimationFrame(update);
 }
-
-window.requestAnimationFrame(update);
 
 export function initDraw(num, l, t, f) {
     numLayers = num;
@@ -41,7 +39,6 @@ export function initDraw(num, l, t, f) {
     } else {
         totalScale = 1;
     }
-    console.log(totalHeight);
     gameScreen.style.display = "flex";
     resizeCanvas();
     drawLayer(layerIdx);
@@ -50,6 +47,7 @@ export function initDraw(num, l, t, f) {
     }
 
     startTime = Date.now();
+    window.requestAnimationFrame(update);
 }
 
 const gameScreen = document.getElementById("game-screen");
@@ -556,10 +554,28 @@ document.getElementById("next-layer").addEventListener("click", () => {
 
         gameScreen.style.display = "none";
         const center = new THREE.Vector3(0.5 * totalScale, 0.5 * totalScale, height * numLayers / 2);
-        let finalGeometry = BufferGeometryUtils.mergeVertices(
-            BufferGeometryUtils.mergeGeometries(allGeometries, false)
-        );
-        finalGeometry.computeVertexNormals();
+        let finalGeometry;
+        if (allGeometries.length === 0) {
+            finalGeometry = new THREE.BufferGeometry();
+        } else {
+            finalGeometry = BufferGeometryUtils.mergeVertices(
+                BufferGeometryUtils.mergeGeometries(allGeometries, false)
+            );
+            finalGeometry.computeVertexNormals();
+        }
+
+        const time = Date.now() - startTime;
+        const minutes = Math.floor(Math.round(time / 1000) / 60);
+        const seconds = Math.round(time / 1000) % 60;
+        document.getElementById("time-result").innerHTML = `Your time: ${minutes}m ${seconds}s`;
+        const verdict = document.getElementById("verdict");
+        if (time < 2000 * 60) {
+            verdict.innerHTML = "Verdict: Okay";
+        } else {
+            verdict.innerHTML = "Verdict: SLOW";
+            verdict.style.color = "#ff0000";
+        }
+
         initDisplay(center, totalScale, finalGeometry, transform, fileBuf);
     } else {
         drawLayer(++layerIdx);

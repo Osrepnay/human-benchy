@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { STLLoader } from "three/examples/jsm/loaders/STLLoader.js";
+import { STLExporter } from "three/addons/exporters/STLExporter.js";
 
 const scene = new THREE.Scene();
 const trueScene = new THREE.Scene();
@@ -30,7 +31,7 @@ export function initDisplay(center, totalScale, geometry, transform, fileBuf) {
     const mesh = new THREE.Mesh(geometry, material);
     scene.add(mesh);
 
-    const centerDist = 1.5;
+    const centerDist = 1;
     const coordDelta = centerDist / Math.sqrt(3);
     camera.position.x = center.x + coordDelta;
     camera.position.y = center.x - coordDelta;
@@ -41,7 +42,7 @@ export function initDisplay(center, totalScale, geometry, transform, fileBuf) {
     controls.target = center;
     controls.update();
 
-    renderer.setSize(renderCanvas.width, renderCanvas.height);
+    renderer.setSize(renderCanvas.width, renderCanvas.height, false);
     renderer.setAnimationLoop(() => renderer.render(scene, camera));
 
     const loader = new STLLoader();
@@ -65,6 +66,24 @@ export function initDisplay(center, totalScale, geometry, transform, fileBuf) {
     trueControls.target = center;
     trueControls.update();
 
-    trueRenderer.setSize(renderCanvas.width, renderCanvas.height);
+    trueRenderer.setSize(renderCanvas.width, renderCanvas.height, false);
     trueRenderer.setAnimationLoop(() => trueRenderer.render(trueScene, camera));
+
+    document.getElementById("download").addEventListener("click", () => {
+        const scaledGeometry = geometry.clone();
+        const rev = 1 / (totalScale * transform.scale);
+        scaledGeometry.scale(rev, rev, rev);
+        const scaledMesh = new THREE.Mesh(scaledGeometry, material);
+        const exporter = new STLExporter();
+        const binary = exporter.parse(scaledMesh, { binary: true });
+        const blobUrl = URL.createObjectURL(new Blob([binary]));
+
+        // this sucks balls
+        const tempLink = document.createElement("a");
+        tempLink.href = blobUrl;
+        tempLink.download = "abomination.stl";
+        document.body.appendChild(tempLink);
+        tempLink.click();
+        document.body.removeChild(tempLink);
+    });
 }
