@@ -92,7 +92,7 @@ function transformY(clientY) {
 // this is awful but it's the best way i could find
 const container = document.getElementById("canvas-container");
 function resizeCanvas() {
-    if (window.matchMedia("orientation: portrait")) {
+    if (window.matchMedia("orientation: portrait").matches) {
         return;
     }
 
@@ -275,7 +275,8 @@ function floodfill(startX, startY) {
 
 function drawLayer(idx) {
     const layerScale = Math.min(layerCanvas.width, layerCanvas.height);
-    layerCtx.clearRect(0, 0, layerCanvas.width, layerCanvas.height);
+    layerCtx.fillStyle = "white";
+    layerCtx.fillRect(0, 0, layerCanvas.width, layerCanvas.height);
 
     layerCtx.lineWidth = 4;
     layerCtx.strokeStyle = "black";

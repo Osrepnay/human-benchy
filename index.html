@@ -5,7 +5,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
     </heaD>
     <body>
-        <div id="picker-screen">
+        <div id="picker-screen" class="floatbox">
             <h1>Human Benchy</h1>
             <p>
                 Here, you can draw a 3d model layer by layer like a 3d printer,
@@ -14,8 +14,6 @@
                 It doesn't have any worries. Regrets. Debts.
                 <br>
                 It just prints, prints, prints prints prints.
-                <br>
-                And now you can too!
             </p>
 
             <form id="option-form" action="javascript:void(0)">
@@ -53,7 +51,7 @@
                     <canvas class="canvas" id="canvas" width="500" height="500"></canvas>
                 </div>
             </div>
-            <div id="tools">
+            <div id="tools" class="floatbox">
                 <div id="brush-size-container">
                     <label for="brush-size">Brush Size</label>
                     <br>
@@ -70,18 +68,20 @@
             </div>
         </div>
         <div id="display-screen" style="display: none;">
-            <h1>You Won?</h1>
-            <p id="time-result" class="result"></p>
-            <h3 id="verdict" class="result"></h3>
-            <div id="renderers">
-                <div class="render-container">
-                    <p>Your Model</p>
-                    <canvas class="renderer" id="renderer" width="500" height="500"></canvas>
-                    <button id="download">Download</button>
-                </div>
-                <div class="render-container">
-                    <p>Uploaded STL</p>
-                    <canvas class="renderer" id="true-renderer" width="500" height="500"></canvas>
+            <div class="floatbox">
+                <h1>You Won?</h1>
+                <p id="time-result" class="result"></p>
+                <h3 id="verdict" class="result"></h3>
+                <div id="renderers">
+                    <div class="render-container">
+                        <p>Your Model</p>
+                        <canvas class="renderer" id="renderer" width="500" height="500"></canvas>
+                        <button id="download">Download</button>
+                    </div>
+                    <div class="render-container">
+                        <p>Uploaded STL</p>
+                        <canvas class="renderer" id="true-renderer" width="500" height="500"></canvas>
+                    </div>
                 </div>
             </div>
         </div>
